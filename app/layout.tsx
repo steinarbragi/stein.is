@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Steinar Bragi Sigurðarson | MSc in Computer Science and Computational Linguistics",
-  description: "Personal website of Steinar Bragi Sigurðarson - MSc in Computer Science and Computational Linguistics",
+  title: "Steinar Bragi Sigurðarson | Founder of Tanuki.is",
+  description: "Steinar Bragi Sigurðarson - MSc in Computer Science and Computational Linguistics, Founder of Tanuki.is - A digital agency focused on cutting-edge web development with modern web tech and AI applications.",
 };
 
 export default function RootLayout({

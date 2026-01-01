@@ -31,10 +31,10 @@ body {
     transform: translate(0, 0) scale(1);
   }
   33% {
-    transform: translate(30px, -50px) scale(1.1);
+    transform: translate(80px, -120px) scale(1.2);
   }
   66% {
-    transform: translate(-20px, 20px) scale(0.9);
+    transform: translate(-60px, 80px) scale(0.8);
   }
 }
 
@@ -68,7 +68,20 @@ body {
 }
 
 .animate-blob {
-  animation: blob 7s infinite;
+  animation: blob 12s infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
 }
 
 .animation-delay-2000 {

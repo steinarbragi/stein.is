@@ -2,23 +2,23 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-indigo-900 via-purple-900 to-pink-900">
+    <div className="relative min-h-screen overflow-hidden bg-black">
       {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.3),transparent_50%)] animate-pulse" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(219,39,119,0.3),transparent_50%)] animate-pulse delay-1000" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,83,45,0.25),transparent_50%)] animate-pulse-slow" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(34,197,94,0.2),transparent_50%)] animate-pulse-slow animation-delay-2000" />
       
       {/* Floating orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
-      <div className="absolute top-40 right-10 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
-      <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-700 rounded-full mix-blend-multiply filter blur-xl opacity-[0.15] animate-blob" />
+      <div className="absolute top-40 right-10 w-72 h-72 bg-green-700 rounded-full mix-blend-multiply filter blur-xl opacity-[0.15] animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-teal-800 rounded-full mix-blend-multiply filter blur-xl opacity-[0.15] animate-blob animation-delay-4000" />
 
       <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
         <div className="w-full max-w-2xl text-center">
           {/* Profile Picture */}
           <div className="mb-8 animate-fade-in">
             <div className="relative mx-auto w-40 h-40 md:w-48 md:h-48">
-              <div className="absolute inset-0 rounded-full bg-linear-to-r from-purple-400 via-pink-400 to-indigo-400 p-1 animate-spin-slow">
-                <div className="h-full w-full rounded-full bg-linear-to-br from-indigo-900 via-purple-900 to-pink-900" />
+              <div className="absolute inset-0 rounded-full bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 p-1 animate-spin-slow">
+                <div className="h-full w-full rounded-full bg-black" />
               </div>
               <div className="relative h-full w-full rounded-full overflow-hidden ring-4 ring-white/20 backdrop-blur-sm">
                 <Image
@@ -35,15 +35,26 @@ export default function Home() {
 
           {/* Name */}
           <h1 className="mb-4 text-4xl md:text-6xl font-bold text-white animate-fade-in-up animation-delay-200">
-            <span className="bg-linear-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-white via-emerald-200 to-green-200 bg-clip-text text-transparent">
               Steinar Bragi Sigurðarson
             </span>
           </h1>
 
           {/* Title */}
-          <div className="mb-12 animate-fade-in-up animation-delay-400">
-            <p className="text-xl md:text-2xl text-purple-200 font-light">
+          <div className="mb-8 animate-fade-in-up animation-delay-400">
+            <p className="text-xl md:text-2xl text-gray-300 font-light mb-4">
               MSc in Computer Science and Computational Linguistics
+            </p>
+            <p className="text-lg md:text-xl text-gray-200 font-medium">
+              Founder of{" "}
+              <a
+                href="https://tanuki.is"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-emerald-300 transition-colors duration-300 underline decoration-2 underline-offset-4 decoration-emerald-500/50 hover:decoration-emerald-400"
+              >
+                Tanuki.is
+              </a>
             </p>
           </div>
 
@@ -53,7 +64,7 @@ export default function Home() {
               href="https://github.com/steinarbragi"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50"
+              className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg hover:shadow-emerald-500/50"
               aria-label="GitHub"
             >
               <svg
@@ -117,7 +128,7 @@ export default function Home() {
               href="https://www.threads.com/@steinarbragi"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50"
+              className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg hover:shadow-emerald-500/50"
               aria-label="Threads"
             >
               <svg
