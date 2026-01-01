@@ -43,7 +43,7 @@ export default function Home() {
           {/* Title */}
           <div className="mb-12 animate-fade-in-up animation-delay-400">
             <p className="text-xl md:text-2xl text-purple-200 font-light">
-              Software Developer <span className="mx-2">/</span> AI Researcher
+              MSc in Computer Science and Computational Linguistics
             </p>
           </div>
 
