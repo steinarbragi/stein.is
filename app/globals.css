@@ -116,3 +116,20 @@ body {
 .animate-spin-slow {
   animation: spin-slow 8s linear infinite;
 }
+
+/* Syntax highlighting for code blocks */
+@import 'highlight.js/styles/github-dark.css';
+
+/* Prose styles for markdown content */
+.prose pre {
+  @apply overflow-x-auto;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0;
+  color: inherit;
+}
+
+.prose code {
+  @apply before:content-none after:content-none;
+}
