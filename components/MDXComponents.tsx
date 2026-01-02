@@ -1,7 +1,15 @@
 import type { MDXComponents } from 'mdx/types';
+import { YouTube, Twitter, Instagram, CodePen, Spotify, Vimeo, GenericEmbed } from './Embeds';
 
 export function getMDXComponents(components: MDXComponents = {}): MDXComponents {
   return {
+    YouTube,
+    Twitter,
+    Instagram,
+    CodePen,
+    Spotify,
+    Vimeo,
+    GenericEmbed,
     h1: ({ children }) => (
       <h1 className="text-4xl font-bold text-white mt-8 mb-4">
         {children}
