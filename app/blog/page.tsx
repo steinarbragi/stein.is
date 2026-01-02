@@ -17,7 +17,7 @@ export default async function BlogPage() {
   const posts = await getAllPosts();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black">
+    <div className="relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] overflow-hidden bg-black">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,83,45,0.25),transparent_50%)] animate-pulse-slow" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(34,197,94,0.2),transparent_50%)] animate-pulse-slow animation-delay-2000" />
@@ -49,7 +49,7 @@ export default async function BlogPage() {
             </span>
           </h1>
           <p className="text-xl text-gray-300">
-            Thoughts on web development, AI, and technology
+            Thoughts on life, technology, and other things.
           </p>
         </div>
 

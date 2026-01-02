@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black">
+    <div className="relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] overflow-hidden bg-black">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,83,45,0.25),transparent_50%)] animate-pulse-slow" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(34,197,94,0.2),transparent_50%)] animate-pulse-slow animation-delay-2000" />
@@ -12,7 +12,7 @@ export default function Home() {
       <div className="absolute top-40 right-10 w-72 h-72 bg-green-700 rounded-full mix-blend-multiply filter blur-xl opacity-[0.15] animate-blob animation-delay-2000" />
       <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-teal-800 rounded-full mix-blend-multiply filter blur-xl opacity-[0.15] animate-blob animation-delay-4000" />
 
-      <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+      <main className="relative z-10 flex min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-16">
         <div className="w-full max-w-2xl text-center">
           {/* Profile Picture */}
           <div className="mb-8 animate-fade-in">
