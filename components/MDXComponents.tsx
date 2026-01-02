@@ -26,7 +26,7 @@ export function getMDXComponents(components: MDXComponents = {}): MDXComponents 
       </h3>
     ),
     p: ({ children }) => (
-      <p className="text-gray-300 leading-relaxed mb-4">
+      <p className="text-gray-300 leading mb-4 text-xl">
         {children}
       </p>
     ),
