@@ -28,7 +28,7 @@ export default function AVPage() {
             volume={audioData.volume}
             style={style}
             zoomLevel={zoomLevel}
-            autoZoom={autoZoom}
+            autoZoom={style === 'geometric' ? false : autoZoom}
             zoomSpeed={zoomSpeed}
             rotationSpeed={rotationSpeed}
             colorIntensity={colorIntensity}
@@ -87,46 +87,21 @@ export default function AVPage() {
             <div className="absolute top-32 left-8 w-64 bg-black/80 backdrop-blur-sm rounded-lg p-4 space-y-4 border border-white/10">
               <h3 className="text-white/70 text-xs font-medium uppercase tracking-wider">Controls</h3>
 
-              {/* Style Picker */}
-              <div className="space-y-2">
-                <label className="text-white/60 text-sm">Style</label>
-                <div className="flex gap-2">
+              {/* Auto Zoom Toggle - only for Mandelbulb */}
+              {style === 'mandelbulb' && (
+                <div className="flex items-center justify-between">
+                  <label className="text-white/60 text-sm">Auto Zoom</label>
                   <button
-                    onClick={() => setStyle('mandelbulb')}
-                    className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
-                      style === 'mandelbulb'
-                        ? 'bg-emerald-500 text-black'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
-                    }`}
+                    onClick={() => setAutoZoom(!autoZoom)}
+                    className={`w-10 h-5 rounded-full transition-colors ${autoZoom ? 'bg-emerald-500' : 'bg-white/20'}`}
                   >
-                    Mandelbulb
-                  </button>
-                  <button
-                    onClick={() => setStyle('geometric')}
-                    className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
-                      style === 'geometric'
-                        ? 'bg-emerald-500 text-black'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
-                    }`}
-                  >
-                    Mandelbox
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform mx-0.5 ${autoZoom ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
-              </div>
+              )}
 
-              {/* Auto Zoom Toggle */}
-              <div className="flex items-center justify-between">
-                <label className="text-white/60 text-sm">Auto Zoom</label>
-                <button
-                  onClick={() => setAutoZoom(!autoZoom)}
-                  className={`w-10 h-5 rounded-full transition-colors ${autoZoom ? 'bg-emerald-500' : 'bg-white/20'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white transition-transform mx-0.5 ${autoZoom ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {/* Zoom Level (only when auto zoom is off) */}
-              {!autoZoom && (
+              {/* Zoom Level (only when auto zoom is off or Mandelbox) */}
+              {(style === 'geometric' || !autoZoom) && (
                 <div className="space-y-1">
                   <label className="text-white/60 text-sm">Zoom Level</label>
                   <input
@@ -141,8 +116,8 @@ export default function AVPage() {
                 </div>
               )}
 
-              {/* Zoom Speed (only when auto zoom is on) */}
-              {autoZoom && (
+              {/* Zoom Speed (only when auto zoom is on and Mandelbulb) */}
+              {style === 'mandelbulb' && autoZoom && (
                 <div className="space-y-1">
                   <label className="text-white/60 text-sm">Zoom Speed</label>
                   <input
@@ -200,6 +175,30 @@ export default function AVPage() {
               </div>
             </div>
           )}
+
+          {/* Style picker - bottom center */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            <button
+              onClick={() => setStyle('mandelbulb')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                style === 'mandelbulb'
+                  ? 'bg-white/20 text-white border border-white/30'
+                  : 'bg-black/40 text-white/50 border border-transparent hover:text-white/80 hover:bg-black/60'
+              }`}
+            >
+              Mandelbulb
+            </button>
+            <button
+              onClick={() => setStyle('geometric')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                style === 'geometric'
+                  ? 'bg-white/20 text-white border border-white/30'
+                  : 'bg-black/40 text-white/50 border border-transparent hover:text-white/80 hover:bg-black/60'
+              }`}
+            >
+              Mandelbox
+            </button>
+          </div>
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center">

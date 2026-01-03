@@ -285,6 +285,7 @@ const geometricShader = `
   #define MAX_DIST 50.0
   #define SURF_DIST 0.001
   #define PI 3.14159265359
+  #define TIME_OFFSET 180.0
 
   vec3 organicPalette(float t, float shift) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -377,14 +378,15 @@ const geometricShader = `
   }
 
   vec4 sceneSDF(vec3 p) {
+    float time = uTime + TIME_OFFSET;
     float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.005 * uAudioReactivity;
-    float t = uTime * rotSpeed;
+    float t = time * rotSpeed;
 
     p = rotY(t * 0.5) * rotX(t * 0.25) * p;
 
     float audioMod = uAudioReactivity * (uBass * 0.08 + uMid * 0.05);
 
-    float scale = -2.0 + sin(uTime * 0.03) * 0.2 + audioMod;
+    float scale = -2.0 + sin(time * 0.03) * 0.2 + audioMod;
     float foldLimit = 1.0 + uMid * 0.02 * uAudioReactivity;
     float minR = 0.5 + uHigh * 0.02 * uAudioReactivity;
     float maxR = 1.0;
@@ -421,14 +423,11 @@ const geometricShader = `
 
   void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
+    float time = uTime + TIME_OFFSET;
 
-    float zoomPhase = uTime * uZoomSpeed * 0.008 - 1.5708;
-    float autoZoomWave = sin(zoomPhase) * 0.5 + 0.5;
-    float autoZoomFactor = 1.0 + autoZoomWave * 1.2;
-    float manualZoomFactor = 1.0 + uZoomLevel * 2.0;
-
-    float zoomFactor = mix(manualZoomFactor, autoZoomFactor, uAutoZoom);
-    zoomFactor += uBass * 0.05 * uAudioReactivity;
+    // Fixed zoom - no animation
+    float zoomFactor = 1.0 + uZoomLevel * 2.0;
+    zoomFactor += uBass * 0.03 * uAudioReactivity;
 
     float camDist = 3.0 / zoomFactor;
     vec3 ro = vec3(0.0, 0.0, camDist);
@@ -448,7 +447,7 @@ const geometricShader = `
       float trap2 = trapPos.y;
       float trapDetail = trapPos.z;
 
-      float t = uTime * 0.08;
+      float t = time * 0.08;
       vec3 lightPos1 = vec3(3.0 * sin(t), 2.0 * cos(t * 0.7), 3.0 * cos(t));
       vec3 lightPos2 = vec3(-3.0 * cos(t * 0.6), 2.5 * sin(t * 0.8), -2.0 * sin(t * 0.5));
       vec3 lightPos3 = vec3(0.0, -3.0, 2.0 * cos(t * 0.4));
@@ -461,16 +460,16 @@ const geometricShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      vec3 lightCol1 = organicPalette(uTime * 0.005 + uBass * 0.02, 0.05);
-      vec3 lightCol2 = jewelPalette(uTime * 0.004 + trap1 * 0.2);
-      vec3 lightCol3 = organicPalette(uTime * 0.006 + 0.5, 0.3);
+      vec3 lightCol1 = organicPalette(time * 0.005 + uBass * 0.02, 0.05);
+      vec3 lightCol2 = jewelPalette(time * 0.004 + trap1 * 0.2);
+      vec3 lightCol3 = organicPalette(time * 0.006 + 0.5, 0.3);
 
-      float colorT = trap1 * 1.2 + trap2 * 0.6 + uTime * 0.008;
+      float colorT = trap1 * 1.2 + trap2 * 0.6 + time * 0.008;
       float colorShift = uBass * 0.02 + uMid * 0.01;
 
       vec3 organic1 = organicPalette(colorT, colorShift);
-      vec3 organic2 = jewelPalette(trapDetail * 1.5 + trap2 * 0.8 + uTime * 0.005);
-      vec3 earthTone = organicPalette(trap2 * 2.0 + uTime * 0.003, 0.15 + uHigh * 0.01);
+      vec3 organic2 = jewelPalette(trapDetail * 1.5 + trap2 * 0.8 + time * 0.005);
+      vec3 earthTone = organicPalette(trap2 * 2.0 + time * 0.003, 0.15 + uHigh * 0.01);
 
       float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0) * 0.5 + 0.5;
       float blend2 = cos(trap2 * 3.0 + trap1) * 0.5 + 0.5;
@@ -489,7 +488,7 @@ const geometricShader = `
       col += surfaceColor * diff3 * lightCol3 * 0.4;
 
       float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-      vec3 rimColor = organicPalette(colorT + 0.5 + uTime * 0.005, 0.2);
+      vec3 rimColor = organicPalette(colorT + 0.5 + time * 0.005, 0.2);
       col += rim * rimColor * (0.2 + uMid * 0.08 * uAudioReactivity);
 
       vec3 viewDir = -rd;
@@ -505,16 +504,16 @@ const geometricShader = `
     }
 
     vec2 screenUv = gl_FragCoord.xy / uResolution.xy;
-    float bgT = uTime * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02;
+    float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02;
     vec3 bgColor = organicPalette(bgT, 0.1) * 0.05;
     bgColor += jewelPalette(bgT + 0.5) * 0.015;
 
-    bgColor += organicPalette(uTime * 0.005, 0.0) * uBass * 0.02 * uAudioReactivity;
+    bgColor += organicPalette(time * 0.005, 0.0) * uBass * 0.02 * uAudioReactivity;
 
     col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 2.0, d));
 
     float fog = 1.0 - exp(-d * 0.08);
-    vec3 fogColor = organicPalette(uTime * 0.004, 0.1) * 0.12;
+    vec3 fogColor = organicPalette(time * 0.004, 0.1) * 0.12;
     col = mix(col, fogColor, fog * 0.6);
 
     float aberration = length(screenUv - 0.5) * (uVolume * 0.005 + uBass * 0.003) * uAudioReactivity;
