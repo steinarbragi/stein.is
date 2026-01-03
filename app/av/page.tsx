@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
-import { AudioFractal } from '@/components/av/AudioFractal';
+import { AudioFractal, FractalStyle } from '@/components/av/AudioFractal';
 
 export default function AVPage() {
   const { audioData, state, error, start, stop } = useAudioAnalyzer(512);
   const [showControls, setShowControls] = useState(false);
 
   // Fractal controls
+  const [style, setStyle] = useState<FractalStyle>('mandelbulb');
   const [zoomLevel, setZoomLevel] = useState(0);
   const [autoZoom, setAutoZoom] = useState(true);
   const [zoomSpeed, setZoomSpeed] = useState(0.5);
@@ -25,6 +26,7 @@ export default function AVPage() {
             mid={audioData.mid}
             high={audioData.high}
             volume={audioData.volume}
+            style={style}
             zoomLevel={zoomLevel}
             autoZoom={autoZoom}
             zoomSpeed={zoomSpeed}
@@ -84,6 +86,33 @@ export default function AVPage() {
           {showControls && (
             <div className="absolute top-32 left-8 w-64 bg-black/80 backdrop-blur-sm rounded-lg p-4 space-y-4 border border-white/10">
               <h3 className="text-white/70 text-xs font-medium uppercase tracking-wider">Controls</h3>
+
+              {/* Style Picker */}
+              <div className="space-y-2">
+                <label className="text-white/60 text-sm">Style</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStyle('mandelbulb')}
+                    className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                      style === 'mandelbulb'
+                        ? 'bg-emerald-500 text-black'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    Mandelbulb
+                  </button>
+                  <button
+                    onClick={() => setStyle('geometric')}
+                    className={`flex-1 px-3 py-1.5 rounded text-sm transition-colors ${
+                      style === 'geometric'
+                        ? 'bg-emerald-500 text-black'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    Mandelbox
+                  </button>
+                </div>
+              </div>
 
               {/* Auto Zoom Toggle */}
               <div className="flex items-center justify-between">
