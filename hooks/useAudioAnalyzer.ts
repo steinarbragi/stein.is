@@ -12,10 +12,12 @@ export interface AudioData {
 }
 
 export type AudioState = 'idle' | 'requesting' | 'active' | 'error';
+export type AudioSource = 'microphone' | 'system' | 'file';
 
 export function useAudioAnalyzer(fftSize: number = 256) {
   const [state, setState] = useState<AudioState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<AudioSource>('microphone');
   const [audioData, setAudioData] = useState<AudioData>({
     frequencyData: new Uint8Array(fftSize / 2),
     timeDomainData: new Uint8Array(fftSize / 2),
@@ -28,6 +30,7 @@ export function useAudioAnalyzer(fftSize: number = 256) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   const analyze = useCallback(() => {
@@ -77,23 +80,55 @@ export function useAudioAnalyzer(fftSize: number = 256) {
     animationFrameRef.current = requestAnimationFrame(analyze);
   }, []);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (audioSource: AudioSource = 'microphone') => {
     setState('requesting');
     setError(null);
+    setSource(audioSource);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream: MediaStream;
+
+      if (audioSource === 'system') {
+        // Use getDisplayMedia to capture tab audio
+        // Note: Only works with Chrome tabs, must check "Share tab audio"
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: 1,
+            height: 1,
+            frameRate: 1,
+          },
+          audio: {
+            suppressLocalAudioPlayback: false,
+            autoGainControl: false,
+            echoCancellation: false,
+            noiseSuppression: false,
+          },
+        } as DisplayMediaStreamOptions);
+
+        // Stop video tracks immediately - we only need audio
+        stream.getVideoTracks().forEach(track => track.stop());
+
+        // Check if audio track was captured
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          stream.getTracks().forEach(track => track.stop());
+          throw new Error('NO_AUDIO_TRACK');
+        }
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
       streamRef.current = stream;
 
       const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
 
-      const source = audioContext.createMediaStreamSource(stream);
+      const sourceNode = audioContext.createMediaStreamSource(stream);
       const analyzer = audioContext.createAnalyser();
       analyzer.fftSize = fftSize;
       analyzer.smoothingTimeConstant = 0.8;
 
-      source.connect(analyzer);
+      sourceNode.connect(analyzer);
       analyzerRef.current = analyzer;
 
       setState('active');
@@ -101,13 +136,77 @@ export function useAudioAnalyzer(fftSize: number = 256) {
     } catch (err) {
       setState('error');
       if (err instanceof Error) {
-        if (err.name === 'NotAllowedError') {
-          setError('Microphone access denied. Please allow microphone access to experience the visualization.');
+        if (err.message === 'NO_AUDIO_TRACK') {
+          setError('No audio captured. You must: 1) Select a Chrome TAB (not window/screen), 2) Check "Share tab audio" checkbox, 3) The tab must be playing audio.');
+        } else if (err.name === 'NotAllowedError') {
+          if (audioSource === 'system') {
+            setError('Screen sharing was cancelled. Please try again.');
+          } else {
+            setError('Microphone access denied. Please allow microphone access to experience the visualization.');
+          }
         } else {
           setError(err.message);
         }
       } else {
-        setError('Failed to access microphone');
+        setError('Failed to access audio');
+      }
+    }
+  }, [fftSize, analyze]);
+
+  const startWithFile = useCallback(async (file: File) => {
+    setState('requesting');
+    setError(null);
+    setSource('file');
+
+    try {
+      // Create audio element first
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(file);
+      audio.loop = true;
+      audio.playsInline = true;
+      audioElementRef.current = audio;
+
+      // Wait for audio to be ready
+      await new Promise<void>((resolve, reject) => {
+        audio.oncanplaythrough = () => resolve();
+        audio.onerror = () => reject(new Error('Failed to load audio file'));
+        audio.load();
+      });
+
+      // Create AudioContext after user gesture and audio is ready
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+
+      // Resume AudioContext (required for Safari)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
+      // Create source and analyzer
+      const sourceNode = audioContext.createMediaElementSource(audio);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = fftSize;
+      analyzer.smoothingTimeConstant = 0.8;
+
+      sourceNode.connect(analyzer);
+      analyzer.connect(audioContext.destination); // So we can hear it
+      analyzerRef.current = analyzer;
+
+      // Start playback
+      await audio.play();
+
+      setState('active');
+      analyze();
+    } catch (err) {
+      setState('error');
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setError('Playback was blocked. Please try again.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to load audio file');
       }
     }
   }, [fftSize, analyze]);
@@ -121,6 +220,12 @@ export function useAudioAnalyzer(fftSize: number = 256) {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.src = '';
+      audioElementRef.current = null;
     }
 
     if (audioContextRef.current) {
@@ -138,5 +243,5 @@ export function useAudioAnalyzer(fftSize: number = 256) {
     };
   }, [stop]);
 
-  return { audioData, state, error, start, stop };
+  return { audioData, state, error, source, start, startWithFile, stop };
 }

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { AudioFractal, FractalStyle } from '@/components/av/AudioFractal';
 
 export default function AVPage() {
-  const { audioData, state, error, start, stop } = useAudioAnalyzer(512);
+  const { audioData, state, error, start, startWithFile, stop } = useAudioAnalyzer(512);
   const [showControls, setShowControls] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fractal controls
   const [style, setStyle] = useState<FractalStyle>('mandelbulb');
@@ -202,14 +203,14 @@ export default function AVPage() {
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="max-w-md text-center px-8">
+          <div className="max-w-lg text-center px-8">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               <span className="bg-linear-to-r from-white via-emerald-200 to-green-200 bg-clip-text text-transparent">
                 Audio Visual
               </span>
             </h1>
             <p className="text-gray-400 mb-8">
-              An immersive 3D fractal that reacts to sound. Allow microphone access to begin.
+              An immersive 3D fractal that reacts to sound.
             </p>
 
             {error && (
@@ -218,31 +219,61 @@ export default function AVPage() {
               </div>
             )}
 
-            <button
-              onClick={start}
-              disabled={state === 'requesting'}
-              className="group relative px-8 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-black font-medium rounded-lg transition-all duration-200 disabled:cursor-wait"
-            >
-              {state === 'requesting' ? (
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Requesting access...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                  Start Experience
-                </span>
-              )}
-            </button>
+            <div className="flex flex-col gap-3 items-center">
+              {/* Primary options */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {/* Microphone button */}
+                <button
+                  onClick={() => start('microphone')}
+                  disabled={state === 'requesting'}
+                  className="group relative px-6 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-black font-medium rounded-lg transition-all duration-200 disabled:cursor-wait"
+                >
+                  {state === 'requesting' ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Requesting...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      Use Microphone
+                    </span>
+                  )}
+                </button>
+
+                {/* Audio file button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={state === 'requesting'}
+                  className="group relative px-6 py-4 bg-white/10 hover:bg-white/20 disabled:bg-white/5 text-white font-medium rounded-lg transition-all duration-200 disabled:cursor-wait border border-white/20"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    Play Audio File
+                  </span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) startWithFile(file);
+                  }}
+                />
+              </div>
+            </div>
 
             <p className="mt-6 text-xs text-gray-500">
-              Works best with music or ambient sound
+              Upload an MP3 or play music through your speakers with microphone
             </p>
           </div>
 

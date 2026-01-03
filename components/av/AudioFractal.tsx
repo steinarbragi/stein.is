@@ -103,13 +103,20 @@ const mandelbulbShader = `
   }
 
   vec4 sceneSDF(vec3 p) {
-    float rotSpeed = uRotationSpeed * 0.08 + uVolume * 0.02 * uAudioReactivity;
-    p.xz *= rot2D(uTime * rotSpeed);
-    p.xy *= rot2D(uTime * rotSpeed * 0.5);
+    float rotSpeed = uRotationSpeed * 0.08 + uVolume * 0.04 * uAudioReactivity;
 
-    float audioMod = uAudioReactivity * (uBass * 0.8 + uMid * 0.4);
+    // Add audio-reactive rotation wobble
+    float bassWobble = uBass * 0.4 * uAudioReactivity;
+    float midWobble = uMid * 0.25 * uAudioReactivity;
+    p.xz *= rot2D(uTime * rotSpeed + bassWobble);
+    p.xy *= rot2D(uTime * rotSpeed * 0.5 + midWobble);
+
+    // Strong audio influence on power parameter - dramatically changes shape
+    float audioMod = uAudioReactivity * (uBass * 1.5 + uMid * 0.8 + uHigh * 0.4);
     float power = 8.0 + sin(uTime * 0.1) * 1.0 + audioMod;
-    float scale = 1.0 + uVolume * 0.15 * uAudioReactivity;
+
+    // Scale pulsing with bass
+    float scale = 1.0 + uVolume * 0.3 * uAudioReactivity + uBass * 0.15 * uAudioReactivity;
 
     vec4 mb = mandelbulb(p / scale, power);
     return vec4(mb.xyz, mb.w * scale);
@@ -150,7 +157,7 @@ const mandelbulbShader = `
     float manualZoomFactor = 1.0 + uZoomLevel * 2.5;
 
     float zoomFactor = mix(manualZoomFactor, autoZoomFactor, uAutoZoom);
-    zoomFactor += uBass * 0.08 * uAudioReactivity;
+    zoomFactor += uBass * 0.2 * uAudioReactivity + uVolume * 0.1 * uAudioReactivity;
 
     float camDist = 2.8 / zoomFactor;
     vec3 ro = vec3(0.0, 0.0, camDist);
@@ -179,9 +186,11 @@ const mandelbulbShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      vec3 lightCol1 = hsl2rgb(vec3(0.0 + uTime * 0.02 + uBass * 0.15, 0.9, 0.6));
-      vec3 lightCol2 = hsl2rgb(vec3(0.55 + uTime * 0.015 + uMid * 0.1, 0.85, 0.6));
-      vec3 lightCol3 = hsl2rgb(vec3(0.75 + uTime * 0.012 + uHigh * 0.1, 0.9, 0.55));
+      // Light colors pulse dramatically with audio
+      float bassLit = 0.6 + uBass * 0.3 * uAudioReactivity;
+      vec3 lightCol1 = hsl2rgb(vec3(0.0 + uTime * 0.02 + uBass * 0.3 * uAudioReactivity, 0.9, bassLit));
+      vec3 lightCol2 = hsl2rgb(vec3(0.55 + uTime * 0.015 + uMid * 0.25 * uAudioReactivity, 0.85, 0.6 + uMid * 0.2 * uAudioReactivity));
+      vec3 lightCol3 = hsl2rgb(vec3(0.75 + uTime * 0.012 + uHigh * 0.2 * uAudioReactivity, 0.9, 0.55 + uHigh * 0.25 * uAudioReactivity));
 
       float trap1 = trapPos.x;
       float trap2 = trapPos.y;
@@ -193,43 +202,49 @@ const mandelbulbShader = `
 
       float hue = mix(hue1, hue2, sin(trap1 * 5.0) * 0.5 + 0.5);
       hue = mix(hue, hue3, cos(trap2 * 4.0) * 0.3 + 0.3);
-      hue += uBass * 0.1 + uHigh * 0.06 + uMid * 0.05;
+      // Strong hue shift with bass hits
+      hue += uBass * 0.4 * uAudioReactivity + uHigh * 0.15 * uAudioReactivity + uMid * 0.1 * uAudioReactivity;
 
-      float sat = 0.5 + uColorIntensity * 0.5 + uVolume * 0.08 * uAudioReactivity;
-      float lit = 0.45 + uColorIntensity * 0.15 + uBass * 0.05 * uAudioReactivity;
+      // Saturation and brightness pulse with beats
+      float sat = 0.5 + uColorIntensity * 0.5 + uVolume * 0.3 * uAudioReactivity + uBass * 0.2 * uAudioReactivity;
+      float lit = 0.45 + uColorIntensity * 0.15 + uBass * 0.25 * uAudioReactivity + uVolume * 0.1 * uAudioReactivity;
       vec3 baseColor = hsl2rgb(vec3(fract(hue), sat, lit));
 
-      vec3 baseColor2 = hsl2rgb(vec3(fract(hue + 0.33 + trap2 * 0.5), sat * 0.9, lit * 1.1));
+      vec3 baseColor2 = hsl2rgb(vec3(fract(hue + 0.33 + trap2 * 0.5 + uMid * 0.2 * uAudioReactivity), sat * 0.9, lit * 1.1));
 
       vec3 palCol = palette(
-        trapDetail + trap1 * 0.5 + uTime * 0.05,
+        trapDetail + trap1 * 0.5 + uTime * 0.05 + uBass * 0.3 * uAudioReactivity,
         vec3(0.5, 0.5, 0.5),
-        vec3(0.5 + uBass * 0.08, 0.5, 0.5),
+        vec3(0.5 + uBass * 0.3 * uAudioReactivity, 0.5 + uMid * 0.2 * uAudioReactivity, 0.5),
         vec3(1.0, 1.0, 0.8),
-        vec3(0.0 + uBass * 0.1, 0.33 + uMid * 0.1, 0.67 + uHigh * 0.1)
+        vec3(0.0 + uBass * 0.25 * uAudioReactivity, 0.33 + uMid * 0.2 * uAudioReactivity, 0.67 + uHigh * 0.15 * uAudioReactivity)
       );
 
       baseColor = mix(baseColor, baseColor2, trap2 * 0.4);
-      vec3 surfaceColor = mix(baseColor, palCol, 0.4 + uVolume * 0.2);
+      vec3 surfaceColor = mix(baseColor, palCol, 0.4 + uVolume * 0.3 * uAudioReactivity);
 
-      col = surfaceColor * 0.15;
-      col += surfaceColor * diff1 * lightCol1 * 0.7;
+      // Boost overall brightness with bass
+      float bassBrightness = 1.0 + uBass * 0.4 * uAudioReactivity;
+      col = surfaceColor * 0.15 * bassBrightness;
+      col += surfaceColor * diff1 * lightCol1 * 0.7 * bassBrightness;
       col += surfaceColor * diff2 * lightCol2 * 0.6;
       col += surfaceColor * diff3 * lightCol3 * 0.5;
 
       float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-      vec3 rimColor = hsl2rgb(vec3(fract(hue + 0.5 + uTime * 0.025), 0.9, 0.65));
-      col += rim * rimColor * (0.3 + uMid * 0.3 * uAudioReactivity);
+      vec3 rimColor = hsl2rgb(vec3(fract(hue + 0.5 + uTime * 0.025 + uBass * 0.2 * uAudioReactivity), 0.9, 0.65 + uBass * 0.2 * uAudioReactivity));
+      col += rim * rimColor * (0.3 + uMid * 0.5 * uAudioReactivity + uBass * 0.3 * uAudioReactivity);
 
       vec3 viewDir = -rd;
       vec3 halfDir1 = normalize(lightDir1 + viewDir);
       float spec1 = pow(max(dot(n, halfDir1), 0.0), 48.0);
-      col += spec1 * lightCol1 * 0.4;
+      col += spec1 * lightCol1 * (0.4 + uBass * 0.3 * uAudioReactivity);
 
+      // Strong glow pulse with bass
       float glowPulse = sin(uTime * 1.0 + trapDetail * 3.0) * 0.5 + 0.5;
-      col += surfaceColor * uBass * glowPulse * 0.2 * uAudioReactivity;
+      col += surfaceColor * uBass * glowPulse * 0.5 * uAudioReactivity;
+      col += surfaceColor * uVolume * 0.3 * uAudioReactivity;
 
-      col += pow(rim, 2.0) * hsl2rgb(vec3(fract(uTime * 0.03 + trap2 * 0.2), 0.85, 0.65)) * uVolume * 1.0;
+      col += pow(rim, 2.0) * hsl2rgb(vec3(fract(uTime * 0.03 + trap2 * 0.2 + uBass * 0.3 * uAudioReactivity), 0.85, 0.65 + uBass * 0.2 * uAudioReactivity)) * uVolume * 1.2;
     }
 
     float bgHue = uTime * 0.015 + uv.x * 0.08 + uv.y * 0.08;
@@ -379,17 +394,20 @@ const geometricShader = `
 
   vec4 sceneSDF(vec3 p) {
     float time = uTime + TIME_OFFSET;
-    float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.005 * uAudioReactivity;
+    float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.02 * uAudioReactivity;
     float t = time * rotSpeed;
 
-    p = rotY(t * 0.5) * rotX(t * 0.25) * p;
+    // Add audio-reactive rotation wobble
+    float wobble = uBass * 0.3 * uAudioReactivity;
+    p = rotY(t * 0.5 + wobble) * rotX(t * 0.25 + uMid * 0.2 * uAudioReactivity) * p;
 
-    float audioMod = uAudioReactivity * (uBass * 0.08 + uMid * 0.05);
+    // Strong audio influence on fractal parameters
+    float audioMod = uAudioReactivity * (uBass * 0.4 + uMid * 0.25);
 
     float scale = -2.0 + sin(time * 0.03) * 0.2 + audioMod;
-    float foldLimit = 1.0 + uMid * 0.02 * uAudioReactivity;
-    float minR = 0.5 + uHigh * 0.02 * uAudioReactivity;
-    float maxR = 1.0;
+    float foldLimit = 1.0 + uMid * 0.15 * uAudioReactivity + uBass * 0.1 * uAudioReactivity;
+    float minR = 0.5 + uHigh * 0.15 * uAudioReactivity - uBass * 0.1 * uAudioReactivity;
+    float maxR = 1.0 + uVolume * 0.2 * uAudioReactivity;
 
     vec4 fractal = hybridFractal(p, scale, foldLimit, minR, maxR);
     return fractal;
@@ -425,9 +443,9 @@ const geometricShader = `
     vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
     float time = uTime + TIME_OFFSET;
 
-    // Fixed zoom - no animation
+    // Fixed zoom with strong bass pulse
     float zoomFactor = 1.0 + uZoomLevel * 2.0;
-    zoomFactor += uBass * 0.03 * uAudioReactivity;
+    zoomFactor += uBass * 0.15 * uAudioReactivity + uVolume * 0.1 * uAudioReactivity;
 
     float camDist = 3.0 / zoomFactor;
     vec3 ro = vec3(0.0, 0.0, camDist);
@@ -460,55 +478,63 @@ const geometricShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      vec3 lightCol1 = organicPalette(time * 0.005 + uBass * 0.02, 0.05);
-      vec3 lightCol2 = jewelPalette(time * 0.004 + trap1 * 0.2);
-      vec3 lightCol3 = organicPalette(time * 0.006 + 0.5, 0.3);
+      // Light colors pulse with audio
+      vec3 lightCol1 = organicPalette(time * 0.005 + uBass * 0.3 * uAudioReactivity, 0.05 + uBass * 0.2 * uAudioReactivity);
+      vec3 lightCol2 = jewelPalette(time * 0.004 + trap1 * 0.2 + uMid * 0.25 * uAudioReactivity);
+      vec3 lightCol3 = organicPalette(time * 0.006 + 0.5 + uHigh * 0.2 * uAudioReactivity, 0.3);
 
-      float colorT = trap1 * 1.2 + trap2 * 0.6 + time * 0.008;
-      float colorShift = uBass * 0.02 + uMid * 0.01;
+      // Color parameters shift with bass
+      float colorT = trap1 * 1.2 + trap2 * 0.6 + time * 0.008 + uBass * 0.4 * uAudioReactivity;
+      float colorShift = uBass * 0.15 * uAudioReactivity + uMid * 0.1 * uAudioReactivity;
 
       vec3 organic1 = organicPalette(colorT, colorShift);
-      vec3 organic2 = jewelPalette(trapDetail * 1.5 + trap2 * 0.8 + time * 0.005);
-      vec3 earthTone = organicPalette(trap2 * 2.0 + time * 0.003, 0.15 + uHigh * 0.01);
+      vec3 organic2 = jewelPalette(trapDetail * 1.5 + trap2 * 0.8 + time * 0.005 + uMid * 0.3 * uAudioReactivity);
+      vec3 earthTone = organicPalette(trap2 * 2.0 + time * 0.003 + uBass * 0.2 * uAudioReactivity, 0.15 + uHigh * 0.1 * uAudioReactivity);
 
-      float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0) * 0.5 + 0.5;
-      float blend2 = cos(trap2 * 3.0 + trap1) * 0.5 + 0.5;
+      float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0 + uBass * 2.0 * uAudioReactivity) * 0.5 + 0.5;
+      float blend2 = cos(trap2 * 3.0 + trap1 + uMid * 1.5 * uAudioReactivity) * 0.5 + 0.5;
 
       vec3 surfaceColor = mix(organic1, organic2, blend1 * 0.6);
       surfaceColor = mix(surfaceColor, earthTone, blend2 * 0.3);
 
-      float intensity = 0.7 + uColorIntensity * 0.3;
+      // Intensity pulses with audio
+      float intensity = 0.7 + uColorIntensity * 0.3 + uBass * 0.3 * uAudioReactivity + uVolume * 0.2 * uAudioReactivity;
       surfaceColor *= intensity;
 
       float ao = clamp(trap1 * 0.8 + 0.2, 0.0, 1.0);
 
-      col = surfaceColor * 0.12 * ao;
-      col += surfaceColor * diff1 * lightCol1 * 0.65;
-      col += surfaceColor * diff2 * lightCol2 * 0.5;
-      col += surfaceColor * diff3 * lightCol3 * 0.4;
+      // Boost lighting with bass
+      float bassBrightness = 1.0 + uBass * 0.5 * uAudioReactivity;
+      col = surfaceColor * 0.12 * ao * bassBrightness;
+      col += surfaceColor * diff1 * lightCol1 * 0.65 * bassBrightness;
+      col += surfaceColor * diff2 * lightCol2 * 0.5 * (1.0 + uMid * 0.3 * uAudioReactivity);
+      col += surfaceColor * diff3 * lightCol3 * 0.4 * (1.0 + uHigh * 0.3 * uAudioReactivity);
 
       float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-      vec3 rimColor = organicPalette(colorT + 0.5 + time * 0.005, 0.2);
-      col += rim * rimColor * (0.2 + uMid * 0.08 * uAudioReactivity);
+      vec3 rimColor = organicPalette(colorT + 0.5 + time * 0.005 + uBass * 0.3 * uAudioReactivity, 0.2 + uBass * 0.2 * uAudioReactivity);
+      col += rim * rimColor * (0.2 + uMid * 0.4 * uAudioReactivity + uBass * 0.4 * uAudioReactivity);
 
       vec3 viewDir = -rd;
       vec3 halfDir1 = normalize(lightDir1 + viewDir);
       float spec = pow(max(dot(n, halfDir1), 0.0), 64.0);
-      col += spec * lightCol1 * 0.3;
+      col += spec * lightCol1 * (0.3 + uBass * 0.4 * uAudioReactivity);
 
+      // Strong glow pulse with bass
       float innerGlow = exp(-trap1 * 2.0) * 0.2;
-      col += surfaceColor * innerGlow * (0.4 + uBass * 0.1 * uAudioReactivity);
+      col += surfaceColor * innerGlow * (0.4 + uBass * 0.6 * uAudioReactivity);
+      col += surfaceColor * uBass * 0.3 * uAudioReactivity;
+      col += surfaceColor * uVolume * 0.2 * uAudioReactivity;
 
       float depthFade = exp(-d * 0.15);
       col = mix(col * 0.7, col, depthFade);
     }
 
     vec2 screenUv = gl_FragCoord.xy / uResolution.xy;
-    float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02;
-    vec3 bgColor = organicPalette(bgT, 0.1) * 0.05;
-    bgColor += jewelPalette(bgT + 0.5) * 0.015;
+    float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02 + uBass * 0.2 * uAudioReactivity;
+    vec3 bgColor = organicPalette(bgT, 0.1 + uBass * 0.15 * uAudioReactivity) * (0.05 + uBass * 0.05 * uAudioReactivity);
+    bgColor += jewelPalette(bgT + 0.5 + uMid * 0.2 * uAudioReactivity) * (0.015 + uMid * 0.02 * uAudioReactivity);
 
-    bgColor += organicPalette(time * 0.005, 0.0) * uBass * 0.02 * uAudioReactivity;
+    bgColor += organicPalette(time * 0.005, 0.0) * uBass * 0.1 * uAudioReactivity;
 
     col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 2.0, d));
 
