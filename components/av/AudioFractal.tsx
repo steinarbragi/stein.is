@@ -12,10 +12,8 @@ interface AudioFractalProps {
 }
 
 const vertexShader = `
-  varying vec2 vUv;
   void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 1.0);
+    gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
 
@@ -256,25 +254,28 @@ const fragmentShader = `
 
 function FractalMesh({ bass, mid, high, volume }: AudioFractalProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { viewport, size } = useThree();
+  const { gl } = useThree();
 
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(size.width, size.height) },
+      uResolution: { value: new THREE.Vector2() },
       uBass: { value: 0 },
       uMid: { value: 0 },
       uHigh: { value: 0 },
       uVolume: { value: 0 },
     }),
-    [size.width, size.height]
+    []
   );
 
   useFrame((state) => {
     if (meshRef.current) {
       const material = meshRef.current.material as THREE.ShaderMaterial;
       material.uniforms.uTime.value = state.clock.elapsedTime;
-      material.uniforms.uResolution.value.set(size.width * window.devicePixelRatio, size.height * window.devicePixelRatio);
+
+      // Use actual canvas size for resolution
+      const canvas = gl.domElement;
+      material.uniforms.uResolution.value.set(canvas.width, canvas.height);
 
       // Smooth audio values
       material.uniforms.uBass.value += (bass - material.uniforms.uBass.value) * 0.1;
@@ -285,12 +286,14 @@ function FractalMesh({ bass, mid, high, volume }: AudioFractalProps) {
   });
 
   return (
-    <mesh ref={meshRef}>
-      <planeGeometry args={[viewport.width, viewport.height]} />
+    <mesh ref={meshRef} frustumCulled={false}>
+      <planeGeometry args={[2, 2]} />
       <shaderMaterial
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
         uniforms={uniforms}
+        depthTest={false}
+        depthWrite={false}
       />
     </mesh>
   );
