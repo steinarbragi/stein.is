@@ -57,7 +57,7 @@ export default function AVPage() {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="max-w-md text-center px-8">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              <span className="bg-gradient-to-r from-white via-emerald-200 to-green-200 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-white via-emerald-200 to-green-200 bg-clip-text text-transparent">
                 Audio Visual
               </span>
             </h1>
