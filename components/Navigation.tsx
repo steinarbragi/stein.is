@@ -52,6 +52,13 @@ export function Navigation() {
               Experiments
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full" />
             </Link>
+            <Link
+              href="/av"
+              className="text-gray-300 hover:text-emerald-300 transition-colors duration-300 relative group"
+            >
+              AV
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full" />
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -106,6 +113,13 @@ export function Navigation() {
               onClick={closeMenu}
             >
               Experiments
+            </Link>
+            <Link
+              href="/av"
+              className="block text-gray-300 hover:text-emerald-300 transition-colors duration-300 py-2"
+              onClick={closeMenu}
+            >
+              AV
             </Link>
           </div>
         </div>
