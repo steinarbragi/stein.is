@@ -163,7 +163,6 @@ export function useAudioAnalyzer(fftSize: number = 256) {
       const audio = new Audio();
       audio.src = URL.createObjectURL(file);
       audio.loop = true;
-      audio.playsInline = true;
       audioElementRef.current = audio;
 
       // Wait for audio to be ready
