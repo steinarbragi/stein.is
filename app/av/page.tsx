@@ -1,10 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { AudioFractal } from '@/components/av/AudioFractal';
 
 export default function AVPage() {
   const { audioData, state, error, start, stop } = useAudioAnalyzer(512);
+  const [showControls, setShowControls] = useState(false);
+
+  // Fractal controls
+  const [zoomLevel, setZoomLevel] = useState(0);
+  const [autoZoom, setAutoZoom] = useState(true);
+  const [zoomSpeed, setZoomSpeed] = useState(0.5);
+  const [rotationSpeed, setRotationSpeed] = useState(0.5);
+  const [colorIntensity, setColorIntensity] = useState(0.7);
+  const [audioReactivity, setAudioReactivity] = useState(0.7);
 
   return (
     <main className="fixed inset-0 bg-black overflow-hidden">
@@ -15,6 +25,12 @@ export default function AVPage() {
             mid={audioData.mid}
             high={audioData.high}
             volume={audioData.volume}
+            zoomLevel={zoomLevel}
+            autoZoom={autoZoom}
+            zoomSpeed={zoomSpeed}
+            rotationSpeed={rotationSpeed}
+            colorIntensity={colorIntensity}
+            audioReactivity={audioReactivity}
           />
 
           {/* Audio levels indicator */}
@@ -52,6 +68,109 @@ export default function AVPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+
+          {/* Settings toggle */}
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className="absolute top-20 left-8 p-2 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+
+          {/* Controls panel */}
+          {showControls && (
+            <div className="absolute top-32 left-8 w-64 bg-black/80 backdrop-blur-sm rounded-lg p-4 space-y-4 border border-white/10">
+              <h3 className="text-white/70 text-xs font-medium uppercase tracking-wider">Controls</h3>
+
+              {/* Auto Zoom Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-white/60 text-sm">Auto Zoom</label>
+                <button
+                  onClick={() => setAutoZoom(!autoZoom)}
+                  className={`w-10 h-5 rounded-full transition-colors ${autoZoom ? 'bg-emerald-500' : 'bg-white/20'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform mx-0.5 ${autoZoom ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {/* Zoom Level (only when auto zoom is off) */}
+              {!autoZoom && (
+                <div className="space-y-1">
+                  <label className="text-white/60 text-sm">Zoom Level</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={zoomLevel}
+                    onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+              )}
+
+              {/* Zoom Speed (only when auto zoom is on) */}
+              {autoZoom && (
+                <div className="space-y-1">
+                  <label className="text-white/60 text-sm">Zoom Speed</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={zoomSpeed}
+                    onChange={(e) => setZoomSpeed(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+              )}
+
+              {/* Rotation Speed */}
+              <div className="space-y-1">
+                <label className="text-white/60 text-sm">Rotation Speed</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={rotationSpeed}
+                  onChange={(e) => setRotationSpeed(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-500"
+                />
+              </div>
+
+              {/* Color Intensity */}
+              <div className="space-y-1">
+                <label className="text-white/60 text-sm">Color Intensity</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={colorIntensity}
+                  onChange={(e) => setColorIntensity(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-500"
+                />
+              </div>
+
+              {/* Audio Reactivity */}
+              <div className="space-y-1">
+                <label className="text-white/60 text-sm">Audio Reactivity</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={audioReactivity}
+                  onChange={(e) => setAudioReactivity(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-500"
+                />
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
