@@ -19,6 +19,7 @@ interface AudioFractalProps {
   rotationSpeed?: number;
   colorIntensity?: number;
   audioReactivity?: number;
+  rotationOffset?: { x: number; y: number };
 }
 
 const vertexShader = `
@@ -43,6 +44,7 @@ const mandelbulbShader = `
   uniform float uRotationSpeed;
   uniform float uColorIntensity;
   uniform float uAudioReactivity;
+  uniform vec2 uRotationOffset;
 
   #define MAX_STEPS 80
   #define MAX_DIST 50.0
@@ -108,8 +110,9 @@ const mandelbulbShader = `
     // Subtle rotation wobble (reduced from original)
     float bassWobble = uBass * 0.12 * uAudioReactivity;
     float midWobble = uMid * 0.08 * uAudioReactivity;
-    p.xz *= rot2D(uTime * rotSpeed + bassWobble);
-    p.xy *= rot2D(uTime * rotSpeed * 0.5 + midWobble);
+    // Add manual rotation offset from touch/trackpad
+    p.xz *= rot2D(uTime * rotSpeed + bassWobble + uRotationOffset.x);
+    p.xy *= rot2D(uTime * rotSpeed * 0.5 + midWobble + uRotationOffset.y);
 
     // Strong audio influence on power parameter - dramatically changes shape
     // Increased bass influence for more shape distortion
@@ -296,10 +299,11 @@ const geometricShader = `
   uniform float uRotationSpeed;
   uniform float uColorIntensity;
   uniform float uAudioReactivity;
+  uniform vec2 uRotationOffset;
 
-  #define MAX_STEPS 90
-  #define MAX_DIST 50.0
-  #define SURF_DIST 0.001
+  #define MAX_STEPS 128
+  #define MAX_DIST 150.0
+  #define SURF_DIST 0.0006
   #define PI 3.14159265359
   #define TIME_OFFSET 180.0
 
@@ -357,13 +361,16 @@ const geometricShader = `
 
     float trapMin = 1e10;
     float trapPlane = 1e10;
-    float trapSphere = 1e10;
+    float trapEdge = 1e10;
     float trapLine = 1e10;
     vec3 trapColor = vec3(0.0);
     float orbitSum = 0.0;
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 15; i++) {
+      // Box fold creates the architectural edges
       z = boxFold(z, foldLimit);
+
+      // Reduced sphere fold influence for more angular shapes
       sphereFold(z, dr, minR, maxR);
 
       z = z * scale + pos;
@@ -372,8 +379,9 @@ const geometricShader = `
       float r = length(z);
       trapMin = min(trapMin, r);
       trapPlane = min(trapPlane, abs(z.y));
-      trapSphere = min(trapSphere, abs(r - 1.0));
-      trapLine = min(trapLine, length(z.xz));
+      // Edge trap for architectural detail
+      trapEdge = min(trapEdge, min(abs(z.x - z.y), min(abs(z.y - z.z), abs(z.z - z.x))));
+      trapLine = min(trapLine, min(length(z.xz), min(length(z.xy), length(z.yz))));
 
       orbitSum += r / float(i + 1);
 
@@ -381,13 +389,13 @@ const geometricShader = `
         trapColor = z;
       }
 
-      if (r > 100.0) break;
+      if (r > 150.0) break;
     }
 
     vec3 traps = vec3(
-      trapMin + trapSphere * 0.5,
-      trapPlane + trapLine * 0.3,
-      orbitSum * 0.15 + length(trapColor) * 0.1
+      trapMin + trapEdge * 0.4,
+      trapPlane + trapLine * 0.2,
+      orbitSum * 0.12 + length(trapColor) * 0.08
     );
 
     return vec4(traps, length(z) / abs(dr));
@@ -395,23 +403,32 @@ const geometricShader = `
 
   vec4 sceneSDF(vec3 p) {
     float time = uTime + TIME_OFFSET;
-    float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.01 * uAudioReactivity;
+    float rotSpeed = uRotationSpeed * 0.02 + uVolume * 0.008 * uAudioReactivity;
     float t = time * rotSpeed;
 
-    // Subtle rotation wobble (reduced from original)
-    float wobble = uBass * 0.1 * uAudioReactivity;
-    p = rotY(t * 0.5 + wobble) * rotX(t * 0.25 + uMid * 0.06 * uAudioReactivity) * p;
+    // Very subtle rotation for architectural stability
+    // Add manual rotation offset from touch/trackpad
+    float wobble = uBass * 0.06 * uAudioReactivity;
+    p = rotY(t * 0.3 + wobble + uRotationOffset.x) * rotX(t * 0.15 + uMid * 0.03 * uAudioReactivity + uRotationOffset.y) * p;
 
-    // Strong audio influence on fractal parameters - increased bass effect on shape
-    float audioMod = uAudioReactivity * (uBass * 0.8 + uMid * 0.2);
+    // Scale the space to spread structures apart
+    p *= 0.7;
 
-    float scale = -2.0 + sin(time * 0.03) * 0.2 + audioMod;
-    float foldLimit = 1.0 + uMid * 0.1 * uAudioReactivity + uBass * 0.25 * uAudioReactivity;
-    float minR = 0.5 + uHigh * 0.1 * uAudioReactivity - uBass * 0.2 * uAudioReactivity;
-    float maxR = 1.0 + uVolume * 0.15 * uAudioReactivity + uBass * 0.15 * uAudioReactivity;
+    // Architectural parameters - scale further from -2 creates more open space
+    float audioMod = uAudioReactivity * (uBass * 0.4 + uMid * 0.12);
+
+    // Scale slightly away from -2 for more open structures
+    float scale = -2.2 + sin(time * 0.02) * 0.1 + audioMod * 0.3;
+
+    // Lower fold limit = more space between box folds
+    float foldLimit = 0.85 + sin(time * 0.015) * 0.08 + uBass * 0.15 * uAudioReactivity;
+
+    // Larger minR = less clustering, more open voids
+    float minR = 0.45 + uHigh * 0.06 * uAudioReactivity - uBass * 0.08 * uAudioReactivity;
+    float maxR = 1.2 + uVolume * 0.08 * uAudioReactivity + uBass * 0.08 * uAudioReactivity;
 
     vec4 fractal = hybridFractal(p, scale, foldLimit, minR, maxR);
-    return fractal;
+    return vec4(fractal.xyz, fractal.w / 0.7); // Correct distance for scaled space
   }
 
   vec4 rayMarch(vec3 ro, vec3 rd) {
@@ -444,13 +461,28 @@ const geometricShader = `
     vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
     float time = uTime + TIME_OFFSET;
 
-    // Fixed zoom with strong bass pulse
-    float zoomFactor = 1.0 + uZoomLevel * 2.0;
-    zoomFactor += uBass * 0.15 * uAudioReactivity + uVolume * 0.1 * uAudioReactivity;
+    // Zoom controls how deep into the structure we go
+    float zoomFactor = 0.6 + uZoomLevel * 2.5;
+    zoomFactor += uBass * 0.08 * uAudioReactivity + uVolume * 0.06 * uAudioReactivity;
 
-    float camDist = 3.0 / zoomFactor;
-    vec3 ro = vec3(0.0, 0.0, camDist);
-    vec3 rd = normalize(vec3(uv / zoomFactor, -1.0));
+    // Camera pulled back to show vast open spaces
+    float camDist = 6.0 / zoomFactor;
+
+    // Subtle camera sway for sense of floating through space
+    float sway = time * 0.02;
+    vec3 ro = vec3(
+      sin(sway) * 0.15,
+      cos(sway * 0.7) * 0.1 + 0.05,
+      camDist
+    );
+
+    // Look direction with subtle movement
+    vec3 target = vec3(sin(sway * 0.5) * 0.1, cos(sway * 0.3) * 0.05, 0.0);
+    vec3 forward = normalize(target - ro);
+    vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+    vec3 up = cross(forward, right);
+
+    vec3 rd = normalize(forward + uv.x * right / zoomFactor + uv.y * up / zoomFactor);
 
     vec4 result = rayMarch(ro, rd);
     vec3 trapPos = result.xyz;
@@ -466,10 +498,12 @@ const geometricShader = `
       float trap2 = trapPos.y;
       float trapDetail = trapPos.z;
 
-      float t = time * 0.08;
-      vec3 lightPos1 = vec3(3.0 * sin(t), 2.0 * cos(t * 0.7), 3.0 * cos(t));
-      vec3 lightPos2 = vec3(-3.0 * cos(t * 0.6), 2.5 * sin(t * 0.8), -2.0 * sin(t * 0.5));
-      vec3 lightPos3 = vec3(0.0, -3.0, 2.0 * cos(t * 0.4));
+      float t = time * 0.05;
+
+      // Dramatic architectural lighting - like light through vast windows
+      vec3 lightPos1 = vec3(5.0 * sin(t), 4.0, 5.0 * cos(t)); // Main overhead
+      vec3 lightPos2 = vec3(-4.0 * cos(t * 0.4), 0.0, -4.0 * sin(t * 0.3)); // Side fill
+      vec3 lightPos3 = vec3(0.0, -5.0, 3.0); // Underlighting for drama
 
       vec3 lightDir1 = normalize(lightPos1 - p);
       vec3 lightDir2 = normalize(lightPos2 - p);
@@ -479,27 +513,41 @@ const geometricShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      // Light colors pulse with audio
-      vec3 lightCol1 = organicPalette(time * 0.005 + uBass * 0.3 * uAudioReactivity, 0.05 + uBass * 0.2 * uAudioReactivity);
-      vec3 lightCol2 = jewelPalette(time * 0.004 + trap1 * 0.2 + uMid * 0.25 * uAudioReactivity);
-      vec3 lightCol3 = organicPalette(time * 0.006 + 0.5 + uHigh * 0.2 * uAudioReactivity, 0.3);
+      // Cooler, more monumental light colors
+      vec3 lightCol1 = mix(
+        vec3(0.9, 0.95, 1.0), // Cool white
+        organicPalette(time * 0.004 + uBass * 0.2 * uAudioReactivity, 0.05),
+        0.3 + uBass * 0.3 * uAudioReactivity
+      );
+      vec3 lightCol2 = jewelPalette(time * 0.003 + trap1 * 0.15 + uMid * 0.2 * uAudioReactivity) * 0.8;
+      vec3 lightCol3 = vec3(0.4, 0.5, 0.7) * (0.5 + uHigh * 0.3 * uAudioReactivity); // Blue undertone
 
-      // Color parameters shift with bass
-      float colorT = trap1 * 1.2 + trap2 * 0.6 + time * 0.008 + uBass * 0.4 * uAudioReactivity;
-      float colorShift = uBass * 0.15 * uAudioReactivity + uMid * 0.1 * uAudioReactivity;
+      // Architectural color palette - stone, concrete, metal tones
+      float colorT = trap1 * 0.8 + trap2 * 0.4 + time * 0.005 + uBass * 0.3 * uAudioReactivity;
+      float colorShift = uBass * 0.1 * uAudioReactivity + uMid * 0.08 * uAudioReactivity;
 
-      vec3 organic1 = organicPalette(colorT, colorShift);
-      vec3 organic2 = jewelPalette(trapDetail * 1.5 + trap2 * 0.8 + time * 0.005 + uMid * 0.3 * uAudioReactivity);
-      vec3 earthTone = organicPalette(trap2 * 2.0 + time * 0.003 + uBass * 0.2 * uAudioReactivity, 0.15 + uHigh * 0.1 * uAudioReactivity);
+      // Base material - cool grey stone
+      vec3 stoneBase = vec3(0.45, 0.48, 0.52);
+      // Accent color that shifts with audio
+      vec3 accentColor = organicPalette(colorT, colorShift);
+      vec3 metallic = jewelPalette(trapDetail * 1.2 + trap2 * 0.5 + time * 0.004);
 
-      float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0 + uBass * 2.0 * uAudioReactivity) * 0.5 + 0.5;
-      float blend2 = cos(trap2 * 3.0 + trap1 + uMid * 1.5 * uAudioReactivity) * 0.5 + 0.5;
+      // Edge highlighting based on trap values
+      float edgeFactor = exp(-trap1 * 3.0);
+      float depthFactor = exp(-trapDetail * 2.0);
 
-      vec3 surfaceColor = mix(organic1, organic2, blend1 * 0.6);
-      surfaceColor = mix(surfaceColor, earthTone, blend2 * 0.3);
+      // Blend between stone and colored accents
+      float blend1 = sin(trap1 * 3.0 + trapDetail * 1.5 + uBass * 1.5 * uAudioReactivity) * 0.5 + 0.5;
+      float blend2 = cos(trap2 * 2.5 + trap1 * 0.8) * 0.5 + 0.5;
+
+      vec3 surfaceColor = mix(stoneBase, accentColor, blend1 * 0.4 * uColorIntensity);
+      surfaceColor = mix(surfaceColor, metallic, edgeFactor * 0.3 + depthFactor * 0.2);
+
+      // Audio adds color intensity
+      surfaceColor = mix(surfaceColor, accentColor, uBass * 0.4 * uAudioReactivity);
 
       // Intensity pulses with audio
-      float intensity = 0.7 + uColorIntensity * 0.3 + uBass * 0.3 * uAudioReactivity + uVolume * 0.2 * uAudioReactivity;
+      float intensity = 0.6 + uColorIntensity * 0.4 + uBass * 0.35 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
       surfaceColor *= intensity;
 
       float ao = clamp(trap1 * 0.8 + 0.2, 0.0, 1.0);
@@ -511,37 +559,56 @@ const geometricShader = `
       col += surfaceColor * diff2 * lightCol2 * 0.5 * (1.0 + uMid * 0.3 * uAudioReactivity);
       col += surfaceColor * diff3 * lightCol3 * 0.4 * (1.0 + uHigh * 0.3 * uAudioReactivity);
 
-      float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-      vec3 rimColor = organicPalette(colorT + 0.5 + time * 0.005 + uBass * 0.3 * uAudioReactivity, 0.2 + uBass * 0.2 * uAudioReactivity);
-      col += rim * rimColor * (0.2 + uMid * 0.4 * uAudioReactivity + uBass * 0.4 * uAudioReactivity);
+      // Subtle rim light - defines edges in the vast space
+      float rim = pow(1.0 - max(dot(-rd, n), 0.0), 4.0);
+      vec3 rimColor = mix(
+        vec3(0.6, 0.7, 0.9), // Cool edge light
+        organicPalette(colorT + 0.5 + time * 0.004, 0.15),
+        uBass * 0.5 * uAudioReactivity
+      );
+      col += rim * rimColor * (0.15 + uMid * 0.25 * uAudioReactivity + uBass * 0.3 * uAudioReactivity);
 
+      // Sharp specular for metallic/polished stone feel
       vec3 viewDir = -rd;
       vec3 halfDir1 = normalize(lightDir1 + viewDir);
-      float spec = pow(max(dot(n, halfDir1), 0.0), 64.0);
-      col += spec * lightCol1 * (0.3 + uBass * 0.4 * uAudioReactivity);
+      float spec = pow(max(dot(n, halfDir1), 0.0), 96.0);
+      col += spec * lightCol1 * (0.4 + uBass * 0.5 * uAudioReactivity);
 
-      // Strong glow pulse with bass
-      float innerGlow = exp(-trap1 * 2.0) * 0.2;
-      col += surfaceColor * innerGlow * (0.4 + uBass * 0.6 * uAudioReactivity);
-      col += surfaceColor * uBass * 0.3 * uAudioReactivity;
-      col += surfaceColor * uVolume * 0.2 * uAudioReactivity;
+      // Ambient occlusion in crevices pulses with bass
+      float innerGlow = exp(-trap1 * 2.5) * 0.15;
+      col += accentColor * innerGlow * (0.3 + uBass * 0.5 * uAudioReactivity);
 
-      float depthFade = exp(-d * 0.15);
-      col = mix(col * 0.7, col, depthFade);
+      // Overall audio reactivity
+      col += surfaceColor * uBass * 0.2 * uAudioReactivity;
+      col += vec3(0.1, 0.12, 0.15) * uVolume * 0.15 * uAudioReactivity;
+
+      // Depth fade for sense of scale - gentler for vast spaces
+      float depthFade = exp(-d * 0.04);
+      col = mix(col * 0.4, col, depthFade);
     }
 
     vec2 screenUv = gl_FragCoord.xy / uResolution.xy;
-    float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02 + uBass * 0.2 * uAudioReactivity;
-    vec3 bgColor = organicPalette(bgT, 0.1 + uBass * 0.15 * uAudioReactivity) * (0.05 + uBass * 0.05 * uAudioReactivity);
-    bgColor += jewelPalette(bgT + 0.5 + uMid * 0.2 * uAudioReactivity) * (0.015 + uMid * 0.02 * uAudioReactivity);
 
-    bgColor += organicPalette(time * 0.005, 0.0) * uBass * 0.1 * uAudioReactivity;
+    // Deep space background - very dark with subtle color shifts
+    float bgT = time * 0.002 + screenUv.x * 0.02 + screenUv.y * 0.015;
+    vec3 bgColor = vec3(0.01, 0.012, 0.018); // Near black base
+    bgColor += organicPalette(bgT, 0.1) * 0.02; // Subtle color variation
+    bgColor += jewelPalette(bgT + 0.5) * 0.01;
 
-    col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 2.0, d));
+    // Distant glow on bass hits
+    bgColor += vec3(0.02, 0.015, 0.025) * uBass * 0.5 * uAudioReactivity;
 
-    float fog = 1.0 - exp(-d * 0.08);
-    vec3 fogColor = organicPalette(time * 0.004, 0.1) * 0.12;
-    col = mix(col, fogColor, fog * 0.6);
+    col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 10.0, d));
+
+    // Atmospheric fog - very gradual for vast open space
+    float fog = 1.0 - exp(-d * 0.02);
+    vec3 fogColor = mix(
+      vec3(0.015, 0.02, 0.03), // Deep blue-black near
+      vec3(0.008, 0.01, 0.012), // Darker void in distance
+      fog
+    );
+    fogColor += organicPalette(time * 0.003, 0.15) * 0.025 * (1.0 + uBass * 0.4 * uAudioReactivity);
+    col = mix(col, fogColor, fog * 0.7);
 
     float aberration = length(screenUv - 0.5) * (uVolume * 0.005 + uBass * 0.003) * uAudioReactivity;
     col.r *= 1.0 + aberration * 0.5;
@@ -573,6 +640,7 @@ function FractalMesh({
   rotationSpeed = 0.5,
   colorIntensity = 0.7,
   audioReactivity = 0.7,
+  rotationOffset = { x: 0, y: 0 },
 }: AudioFractalProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { gl } = useThree();
@@ -591,6 +659,7 @@ function FractalMesh({
       uRotationSpeed: { value: 0.5 },
       uColorIntensity: { value: 0.7 },
       uAudioReactivity: { value: 0.7 },
+      uRotationOffset: { value: new THREE.Vector2(0, 0) },
     }),
     []
   );
@@ -618,6 +687,7 @@ function FractalMesh({
       material.uniforms.uRotationSpeed.value = rotationSpeed;
       material.uniforms.uColorIntensity.value = colorIntensity;
       material.uniforms.uAudioReactivity.value = audioReactivity;
+      material.uniforms.uRotationOffset.value.set(rotationOffset.x, rotationOffset.y);
     }
   });
 

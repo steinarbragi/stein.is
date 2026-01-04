@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { AudioFractal, FractalStyle } from '@/components/av/AudioFractal';
 
@@ -8,6 +8,7 @@ export default function AVPage() {
   const { audioData, state, error, start, startWithFile, stop } = useAudioAnalyzer(512);
   const [showControls, setShowControls] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fractal controls
   const [style, setStyle] = useState<FractalStyle>('mandelbulb');
@@ -18,10 +19,107 @@ export default function AVPage() {
   const [colorIntensity, setColorIntensity] = useState(0.7);
   const [audioReactivity, setAudioReactivity] = useState(0.7);
 
+  // Touch/gesture controls
+  const [rotationOffset, setRotationOffset] = useState({ x: 0, y: 0 });
+  const touchStateRef = useRef<{
+    initialDistance: number;
+    initialZoom: number;
+    initialAngle: number;
+    initialRotation: { x: number; y: number };
+    lastTouchCount: number;
+  } | null>(null);
+
+  const getTouchDistance = (touches: TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getTouchAngle = (touches: TouchList) => {
+    if (touches.length < 2) return 0;
+    return Math.atan2(
+      touches[1].clientY - touches[0].clientY,
+      touches[1].clientX - touches[0].clientX
+    );
+  };
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      touchStateRef.current = {
+        initialDistance: getTouchDistance(e.touches),
+        initialZoom: zoomLevel,
+        initialAngle: getTouchAngle(e.touches),
+        initialRotation: { ...rotationOffset },
+        lastTouchCount: 2,
+      };
+    }
+  }, [zoomLevel, rotationOffset]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2 && touchStateRef.current) {
+      e.preventDefault();
+
+      // Pinch to zoom
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / touchStateRef.current.initialDistance;
+      const newZoom = Math.max(0, Math.min(1, touchStateRef.current.initialZoom + (scale - 1) * 0.5));
+      setZoomLevel(newZoom);
+
+      // Two-finger rotation
+      const currentAngle = getTouchAngle(e.touches);
+      const angleDelta = currentAngle - touchStateRef.current.initialAngle;
+      setRotationOffset({
+        x: touchStateRef.current.initialRotation.x + angleDelta * 2,
+        y: touchStateRef.current.initialRotation.y,
+      });
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    touchStateRef.current = null;
+  }, []);
+
+  // Trackpad scroll for rotation (two-finger scroll)
+  const handleWheel = useCallback((e: WheelEvent) => {
+    // Check if it's a trackpad gesture (usually has ctrlKey for pinch or small deltaY for scroll)
+    if (e.ctrlKey) {
+      // Pinch zoom on trackpad
+      e.preventDefault();
+      const zoomDelta = -e.deltaY * 0.005;
+      setZoomLevel(prev => Math.max(0, Math.min(1, prev + zoomDelta)));
+    } else {
+      // Two-finger scroll for rotation
+      e.preventDefault();
+      setRotationOffset(prev => ({
+        x: prev.x + e.deltaX * 0.002,
+        y: prev.y + e.deltaY * 0.002,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || state !== 'active') return;
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [state, handleTouchStart, handleTouchMove, handleTouchEnd, handleWheel]);
+
   return (
-    <main className="fixed inset-0 bg-black overflow-hidden">
+    <main className="fixed inset-0 bg-black overflow-hidden touch-none">
       {state === 'active' ? (
-        <>
+        <div ref={containerRef} className="absolute inset-0">
           <AudioFractal
             bass={audioData.bass}
             mid={audioData.mid}
@@ -34,6 +132,7 @@ export default function AVPage() {
             rotationSpeed={rotationSpeed}
             colorIntensity={colorIntensity}
             audioReactivity={audioReactivity}
+            rotationOffset={rotationOffset}
           />
 
           {/* Audio levels indicator */}
@@ -200,7 +299,7 @@ export default function AVPage() {
               Mandelbox
             </button>
           </div>
-        </>
+        </div>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="max-w-lg text-center px-8">
