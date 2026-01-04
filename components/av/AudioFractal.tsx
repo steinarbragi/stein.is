@@ -361,51 +361,61 @@ const geometricShader = `
     return a + b * cos(6.28318 * (c * t + d));
   }
 
-  // === NATURAL/EARTHY PALETTES ===
+  // === NATURAL/REALISTIC PALETTES ===
 
-  // Earth tones - rich browns, deep ochres
+  // Earth tones - deep soil browns, subtle ochres
   vec3 earthPalette(float t) {
-    vec3 a = vec3(0.35, 0.25, 0.15);
-    vec3 b = vec3(0.45, 0.35, 0.2);
-    vec3 c = vec3(0.9, 0.8, 0.6);
-    vec3 d = vec3(0.0, 0.08, 0.15);
+    vec3 a = vec3(0.22, 0.16, 0.10);
+    vec3 b = vec3(0.25, 0.18, 0.12);
+    vec3 c = vec3(0.5, 0.4, 0.3);
+    vec3 d = vec3(0.0, 0.05, 0.1);
     return a + b * cos(6.28318 * (c * t + d));
   }
 
-  // Forest greens - deep shadows to bright moss
+  // Forest greens - muted, natural moss/lichen tones
   vec3 forestPalette(float t) {
-    vec3 a = vec3(0.15, 0.35, 0.15);
-    vec3 b = vec3(0.3, 0.45, 0.2);
-    vec3 c = vec3(0.7, 1.0, 0.6);
-    vec3 d = vec3(0.15, 0.2, 0.1);
+    vec3 a = vec3(0.12, 0.18, 0.10);
+    vec3 b = vec3(0.15, 0.22, 0.12);
+    vec3 c = vec3(0.4, 0.5, 0.35);
+    vec3 d = vec3(0.1, 0.15, 0.08);
     return a + b * cos(6.28318 * (c * t + d));
   }
 
-  // Stone - deep charcoal to bright mineral
+  // Stone - realistic rock grays with subtle warmth
   vec3 stonePalette(float t) {
-    vec3 a = vec3(0.3, 0.28, 0.25);
-    vec3 b = vec3(0.35, 0.33, 0.3);
-    vec3 c = vec3(0.6, 0.6, 0.5);
-    vec3 d = vec3(0.0, 0.03, 0.08);
+    vec3 a = vec3(0.28, 0.27, 0.25);
+    vec3 b = vec3(0.18, 0.17, 0.15);
+    vec3 c = vec3(0.35, 0.35, 0.3);
+    vec3 d = vec3(0.0, 0.02, 0.05);
     return a + b * cos(6.28318 * (c * t + d));
   }
 
-  // Clay - terracotta to burnt sienna
+  // Clay - muted terracotta, weathered sandstone
   vec3 clayPalette(float t) {
-    vec3 a = vec3(0.55, 0.3, 0.18);
-    vec3 b = vec3(0.4, 0.25, 0.15);
-    vec3 c = vec3(0.8, 0.6, 0.4);
-    vec3 d = vec3(0.0, 0.12, 0.2);
+    vec3 a = vec3(0.38, 0.28, 0.20);
+    vec3 b = vec3(0.22, 0.15, 0.10);
+    vec3 c = vec3(0.5, 0.4, 0.3);
+    vec3 d = vec3(0.0, 0.08, 0.12);
     return a + b * cos(6.28318 * (c * t + d));
   }
 
-  // Sky - deep twilight to bright horizon
+  // Sky - soft blue for ambient fill light
   vec3 skyPalette(float t) {
-    vec3 a = vec3(0.3, 0.38, 0.5);
-    vec3 b = vec3(0.3, 0.35, 0.4);
-    vec3 c = vec3(0.6, 0.7, 0.9);
-    vec3 d = vec3(0.25, 0.3, 0.35);
+    vec3 a = vec3(0.45, 0.52, 0.62);
+    vec3 b = vec3(0.15, 0.18, 0.22);
+    vec3 c = vec3(0.3, 0.35, 0.45);
+    vec3 d = vec3(0.6, 0.65, 0.7);
     return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Warm sunlight color
+  vec3 sunlightColor() {
+    return vec3(1.0, 0.95, 0.85);
+  }
+
+  // Cool shadow/ambient color (sky bounce)
+  vec3 shadowColor() {
+    return vec3(0.4, 0.5, 0.7);
   }
 
   mat2 rot2D(float a) {
@@ -642,31 +652,53 @@ const geometricShader = `
       vec3 psyLight2 = etherealPalette(time * 0.004 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity);
       vec3 psyLight3 = naturePalette(time * 0.003 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity);
 
-      // === NATURAL COLOR SCHEME ===
-      vec3 nat_earthLayer = earthPalette(colorT1 + sin(trap2 * 3.0) * 0.25);
-      vec3 nat_forestLayer = forestPalette(colorT2 + cos(trap1 * 2.5) * 0.3);
-      vec3 nat_stoneLayer = stonePalette(colorT3 + sin(trapDetail * 4.0) * 0.2);
-      vec3 nat_clayLayer = clayPalette(colorT1 * 0.6 + colorT2 * 0.4 + trap1 * 0.5);
-      vec3 nat_skyLayer = skyPalette(trap1 + trap2 + time * 0.004);
+      // === NATURAL COLOR SCHEME - Realistic lighting ===
 
-      // More aggressive blending for higher contrast
-      float natBlend1 = pow(blend1, 0.7); // Sharper transitions
-      float natBlend2 = pow(blend2, 0.6);
+      // Material colors - more subtle variation
+      vec3 nat_earthLayer = earthPalette(colorT1 * 0.3 + trap1 * 0.5);
+      vec3 nat_forestLayer = forestPalette(colorT2 * 0.25 + trap2 * 0.4);
+      vec3 nat_stoneLayer = stonePalette(colorT3 * 0.2 + trapDetail * 0.3);
+      vec3 nat_clayLayer = clayPalette(trap1 * 0.4 + trap2 * 0.3);
+      vec3 nat_skyLayer = skyPalette(0.5);
 
-      vec3 natSurface = mix(nat_stoneLayer * 0.7, nat_earthLayer, natBlend1);
-      natSurface = mix(natSurface, nat_forestLayer, natBlend2 * 0.7);
-      natSurface = mix(natSurface, nat_clayLayer, blend3 * 0.5 * uColorIntensity);
-      natSurface = mix(natSurface, nat_skyLayer * 1.2, depthBlend * 0.35 + edgeBlend * 0.25);
+      // Natural material blending based on structure
+      float heightFactor = clamp(n.y * 0.5 + 0.5, 0.0, 1.0); // Upward facing = lighter
+      float creviceFactor = clamp(trap1 * 1.5, 0.0, 1.0); // Deep crevices
 
-      // Stronger audio color response
-      natSurface = mix(natSurface, nat_clayLayer * 1.3, uBass * 0.4 * uAudioReactivity);
-      natSurface = mix(natSurface, nat_forestLayer * 1.2, uMid * 0.3 * uAudioReactivity);
-      natSurface = mix(natSurface, nat_skyLayer * 1.1, uHigh * 0.25 * uAudioReactivity);
+      // Base material: stone with earth/clay variation
+      vec3 natSurface = mix(nat_stoneLayer, nat_earthLayer, blend1 * 0.6);
+      natSurface = mix(natSurface, nat_clayLayer, blend2 * 0.4);
+      // Add moss/lichen in crevices and sheltered areas
+      natSurface = mix(natSurface, nat_forestLayer, creviceFactor * 0.3 * (1.0 - heightFactor));
 
-      // Warmer, more contrasted lighting
-      vec3 natLight1 = mix(clayPalette(time * 0.005 + trap1 * 0.3) * 1.2, stonePalette(time * 0.004 + uBass * 0.3 * uAudioReactivity), sin(time * 0.015) * 0.5 + 0.5);
-      vec3 natLight2 = forestPalette(time * 0.003 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity) * 1.1;
-      vec3 natLight3 = earthPalette(time * 0.004 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity) * 0.9;
+      // Subtle audio color shifts (much more subdued than psychedelic)
+      natSurface = mix(natSurface, nat_clayLayer, uBass * 0.15 * uAudioReactivity);
+      natSurface = mix(natSurface, nat_earthLayer, uMid * 0.1 * uAudioReactivity);
+
+      // === REALISTIC LIGHTING ===
+
+      // Primary sunlight - warm directional light from above
+      vec3 sunDir = normalize(vec3(0.5, 0.8, 0.3));
+      float sunDot = max(dot(n, sunDir), 0.0);
+      float sunDiff = pow(sunDot, 1.2); // Slightly sharper falloff
+
+      // Ambient occlusion from trap values
+      float ao = clamp(0.3 + trap1 * 0.5 + (1.0 - creviceFactor) * 0.2, 0.0, 1.0);
+
+      // Sky ambient - blue fill from above
+      float skyAmbient = clamp(n.y * 0.5 + 0.5, 0.0, 1.0);
+
+      // Ground bounce - subtle warm fill from below
+      float groundBounce = clamp(-n.y * 0.3 + 0.1, 0.0, 0.3);
+
+      // Hemisphere lighting blend
+      vec3 ambientLight = mix(shadowColor() * 0.15, nat_skyLayer * 0.25, skyAmbient);
+      ambientLight += nat_earthLayer * groundBounce * 0.3;
+
+      // Realistic light colors (static, no cycling)
+      vec3 natLight1 = sunlightColor(); // Primary sun
+      vec3 natLight2 = shadowColor() * 0.6; // Fill/ambient
+      vec3 natLight3 = nat_earthLayer * 0.4; // Ground bounce
 
       // Mix between schemes based on uColorScheme
       vec3 surfaceColor = mix(psySurface, natSurface, uColorScheme);
@@ -680,43 +712,73 @@ const geometricShader = `
       vec3 etherealLayer = mix(psy_etherealLayer, nat_forestLayer, uColorScheme);
       vec3 jewelLayer = mix(psy_jewelLayer, nat_stoneLayer, uColorScheme);
 
-      // Intensity with more color preservation
-      float intensity = 0.7 + uColorIntensity * 0.4 + uBass * 0.3 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
-      surfaceColor *= intensity;
+      // === PSYCHEDELIC LIGHTING (original) ===
+      float psy_ao = clamp(trap1 * 0.8 + 0.2, 0.0, 1.0);
+      float psyIntensity = 0.7 + uColorIntensity * 0.4 + uBass * 0.3 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
+      float psyBassBrightness = 1.0 + uBass * 0.5 * uAudioReactivity;
 
-      float ao = clamp(trap1 * 0.8 + 0.2, 0.0, 1.0);
+      vec3 psyCol = psySurface * psyIntensity * 0.12 * psy_ao * psyBassBrightness;
+      psyCol += psySurface * psyIntensity * diff1 * psyLight1 * 0.65 * psyBassBrightness;
+      psyCol += psySurface * psyIntensity * diff2 * psyLight2 * 0.5 * (1.0 + uMid * 0.3 * uAudioReactivity);
+      psyCol += psySurface * psyIntensity * diff3 * psyLight3 * 0.4 * (1.0 + uHigh * 0.3 * uAudioReactivity);
 
-      // Boost lighting with bass
-      float bassBrightness = 1.0 + uBass * 0.5 * uAudioReactivity;
-      col = surfaceColor * 0.12 * ao * bassBrightness;
-      col += surfaceColor * diff1 * lightCol1 * 0.65 * bassBrightness;
-      col += surfaceColor * diff2 * lightCol2 * 0.5 * (1.0 + uMid * 0.3 * uAudioReactivity);
-      col += surfaceColor * diff3 * lightCol3 * 0.4 * (1.0 + uHigh * 0.3 * uAudioReactivity);
+      // Psychedelic rim
+      float psy_rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.5);
+      vec3 psy_rimColor = mix(coolPalette(colorT1 + 0.3), etherealPalette(colorT2 + 0.5 + time * 0.005), blend2);
+      psy_rimColor = mix(psy_rimColor, warmPalette(colorT3), uBass * 0.4 * uAudioReactivity);
+      psyCol += psy_rim * psy_rimColor * (0.2 + uMid * 0.3 * uAudioReactivity + uBass * 0.35 * uAudioReactivity);
 
-      // Organic rim light - varies across the surface
-      float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.5);
-      vec3 rimColor = mix(
-        coolPalette(colorT1 + 0.3),
-        etherealPalette(colorT2 + 0.5 + time * 0.005),
-        blend2
-      );
-      rimColor = mix(rimColor, warmPalette(colorT3), uBass * 0.4 * uAudioReactivity);
-      col += rim * rimColor * (0.2 + uMid * 0.3 * uAudioReactivity + uBass * 0.35 * uAudioReactivity);
-
-      // Specular with color variation
+      // Psychedelic specular
       vec3 viewDir = -rd;
       vec3 halfDir1 = normalize(lightDir1 + viewDir);
-      float spec = pow(max(dot(n, halfDir1), 0.0), 64.0);
-      col += spec * mix(lightCol1, jewelLayer, 0.3) * (0.35 + uBass * 0.4 * uAudioReactivity);
+      float psy_spec = pow(max(dot(n, halfDir1), 0.0), 64.0);
+      psyCol += psy_spec * mix(psyLight1, psy_jewelLayer, 0.3) * (0.35 + uBass * 0.4 * uAudioReactivity);
 
-      // Inner glow in crevices with organic colors
-      float innerGlow = exp(-trap1 * 2.0) * 0.2;
-      vec3 glowColor = mix(warmLayer, etherealLayer, sin(trapDetail * 3.0) * 0.5 + 0.5);
-      col += glowColor * innerGlow * (0.4 + uBass * 0.5 * uAudioReactivity);
+      // Psychedelic inner glow
+      float psy_innerGlow = exp(-trap1 * 2.0) * 0.2;
+      vec3 psy_glowColor = mix(psy_warmLayer, psy_etherealLayer, sin(trapDetail * 3.0) * 0.5 + 0.5);
+      psyCol += psy_glowColor * psy_innerGlow * (0.4 + uBass * 0.5 * uAudioReactivity);
+      psyCol += mix(psy_warmLayer, psy_coolLayer, uBass) * uBass * 0.15 * uAudioReactivity;
+      psyCol += mix(psy_warmLayer, psy_etherealLayer, 0.5) * uVolume * 0.1 * uAudioReactivity;
 
-      // Overall audio reactivity with color
-      col += mix(warmLayer, coolLayer, uBass) * uBass * 0.15 * uAudioReactivity;
-      col += mix(warmLayer, etherealLayer, 0.5) * uVolume * 0.1 * uAudioReactivity;
+      // === NATURAL REALISTIC LIGHTING ===
+
+      // Subtle intensity variation with audio
+      float natIntensity = 0.9 + uColorIntensity * 0.2 + uBass * 0.1 * uAudioReactivity;
+      float natBassBrightness = 1.0 + uBass * 0.15 * uAudioReactivity;
+
+      // Ambient base (hemisphere lighting + AO)
+      vec3 natCol = natSurface * ambientLight * ao * natIntensity;
+
+      // Primary sunlight with warm color
+      natCol += natSurface * sunDiff * natLight1 * 0.85 * natBassBrightness * ao;
+
+      // Secondary fill (sky blue)
+      float fillDiff = max(dot(n, normalize(vec3(-0.3, 0.5, -0.5))), 0.0);
+      natCol += natSurface * fillDiff * natLight2 * 0.25;
+
+      // Ground bounce (warm undertones)
+      natCol += natSurface * groundBounce * natLight3 * 0.5;
+
+      // Realistic rim light - subtle atmospheric scattering effect
+      float nat_rim = pow(1.0 - max(dot(-rd, n), 0.0), 4.0);
+      vec3 nat_rimColor = mix(nat_skyLayer * 0.5, sunlightColor() * 0.3, sunDot);
+      natCol += nat_rim * nat_rimColor * 0.15 * (1.0 + uBass * 0.2 * uAudioReactivity);
+
+      // Realistic specular - subtle sun reflection
+      vec3 sunHalf = normalize(sunDir + viewDir);
+      float nat_spec = pow(max(dot(n, sunHalf), 0.0), 48.0);
+      natCol += nat_spec * sunlightColor() * 0.25 * (1.0 + uBass * 0.15 * uAudioReactivity);
+
+      // Subtle ambient occlusion darkening in crevices
+      float nat_crevice = exp(-trap1 * 3.0);
+      natCol = mix(natCol, natCol * shadowColor() * 0.4, nat_crevice * 0.3);
+
+      // Very subtle audio brightness boost
+      natCol += natSurface * uBass * 0.05 * uAudioReactivity;
+
+      // Mix between psychedelic and natural lighting
+      col = mix(psyCol, natCol, uColorScheme);
 
       // Depth fade for sense of scale - gentler for vast spaces
       float depthFade = exp(-d * 0.04);
@@ -725,41 +787,77 @@ const geometricShader = `
 
     vec2 screenUv = gl_FragCoord.xy / uResolution.xy;
 
-    // Deep space background with organic color shifts
+    // === PSYCHEDELIC BACKGROUND ===
     float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02;
-    vec3 bgColor = vec3(0.012, 0.015, 0.022); // Near black base with slight blue
-    bgColor += coolPalette(bgT) * 0.015;
-    bgColor += etherealPalette(bgT + 0.3) * 0.01;
-    bgColor += naturePalette(bgT + 0.6) * 0.008;
+    vec3 psyBgColor = vec3(0.012, 0.015, 0.022);
+    psyBgColor += coolPalette(bgT) * 0.015;
+    psyBgColor += etherealPalette(bgT + 0.3) * 0.01;
+    psyBgColor += naturePalette(bgT + 0.6) * 0.008;
+    psyBgColor += warmPalette(bgT + uBass) * uBass * 0.04 * uAudioReactivity;
+    psyBgColor += etherealPalette(bgT + 0.5) * uMid * 0.02 * uAudioReactivity;
 
-    // Organic distant glow on bass hits
-    bgColor += warmPalette(bgT + uBass) * uBass * 0.04 * uAudioReactivity;
-    bgColor += etherealPalette(bgT + 0.5) * uMid * 0.02 * uAudioReactivity;
+    // === NATURAL BACKGROUND - Realistic sky gradient ===
+    float skyGrad = screenUv.y * 0.5 + 0.5;
+    vec3 natBgColor = mix(
+      vec3(0.55, 0.65, 0.78),  // Horizon - pale blue
+      vec3(0.32, 0.45, 0.65),   // Zenith - deeper blue
+      pow(skyGrad, 0.7)
+    );
+    // Add subtle warmth near horizon
+    natBgColor = mix(natBgColor, vec3(0.7, 0.65, 0.58), pow(1.0 - skyGrad, 3.0) * 0.3);
+    // Subtle audio response
+    natBgColor += vec3(0.02, 0.015, 0.01) * uBass * 0.5 * uAudioReactivity;
 
+    vec3 bgColor = mix(psyBgColor, natBgColor, uColorScheme);
     col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 10.0, d));
 
-    // Atmospheric fog with organic color variation
+    // === PSYCHEDELIC FOG ===
     float fog = 1.0 - exp(-d * 0.02);
-    vec3 fogNear = coolPalette(time * 0.004 + 0.2) * 0.06;
-    vec3 fogFar = etherealPalette(time * 0.003) * 0.03;
-    vec3 fogColor = mix(fogNear, fogFar, fog);
-    fogColor += naturePalette(time * 0.005) * 0.02 * (1.0 + uBass * 0.3 * uAudioReactivity);
-    fogColor += warmPalette(time * 0.004) * uBass * 0.025 * uAudioReactivity;
-    col = mix(col, fogColor, fog * 0.65);
+    vec3 psyFogNear = coolPalette(time * 0.004 + 0.2) * 0.06;
+    vec3 psyFogFar = etherealPalette(time * 0.003) * 0.03;
+    vec3 psyFogColor = mix(psyFogNear, psyFogFar, fog);
+    psyFogColor += naturePalette(time * 0.005) * 0.02 * (1.0 + uBass * 0.3 * uAudioReactivity);
+    psyFogColor += warmPalette(time * 0.004) * uBass * 0.025 * uAudioReactivity;
 
-    float aberration = length(screenUv - 0.5) * (uVolume * 0.005 + uBass * 0.003) * uAudioReactivity;
+    // === NATURAL FOG - Realistic atmospheric haze ===
+    vec3 natFogColor = mix(
+      vec3(0.6, 0.65, 0.72),   // Near - slight blue haze
+      vec3(0.5, 0.55, 0.65),    // Far - deeper atmospheric blue
+      fog
+    );
+    // Add subtle sun warmth to fog
+    natFogColor = mix(natFogColor, vec3(0.75, 0.7, 0.6), 0.15);
+    natFogColor += vec3(0.015, 0.01, 0.005) * uBass * uAudioReactivity;
+
+    vec3 fogColor = mix(psyFogColor, natFogColor, uColorScheme);
+    float fogAmount = mix(0.65, 0.45, uColorScheme); // Less fog for natural
+    col = mix(col, fogColor, fog * fogAmount);
+
+    // Chromatic aberration - reduced for natural scheme
+    float aberrationAmount = mix(1.0, 0.3, uColorScheme);
+    float aberration = length(screenUv - 0.5) * (uVolume * 0.005 + uBass * 0.003) * uAudioReactivity * aberrationAmount;
     col.r *= 1.0 + aberration * 0.5;
     col.b *= 1.0 - aberration * 0.4;
 
-    float vignette = 1.0 - length((screenUv - 0.5) * 0.9);
+    // Vignette - slightly softer for natural
+    float vignetteStrength = mix(0.9, 0.7, uColorScheme);
+    float vignette = 1.0 - length((screenUv - 0.5) * vignetteStrength);
     col *= smoothstep(0.0, 0.9, vignette);
 
+    // Saturation adjustment - more natural for realistic scheme
     float gray = dot(col, vec3(0.299, 0.587, 0.114));
-    float satBoost = 1.1 + uColorIntensity * 0.3;
+    float psySatBoost = 1.1 + uColorIntensity * 0.3;
+    float natSatBoost = 1.0 + uColorIntensity * 0.1; // More subtle
+    float satBoost = mix(psySatBoost, natSatBoost, uColorScheme);
     col = mix(vec3(gray), col, satBoost);
 
+    // Gamma correction
     col = pow(col, vec3(0.4545));
-    col *= vec3(1.02, 1.0, 0.97);
+
+    // Color tint - warm for psychedelic, neutral for natural
+    vec3 psyTint = vec3(1.02, 1.0, 0.97);
+    vec3 natTint = vec3(1.0, 1.0, 1.0);
+    col *= mix(psyTint, natTint, uColorScheme);
 
     gl_FragColor = vec4(col, 1.0);
   }

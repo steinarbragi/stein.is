@@ -18,7 +18,7 @@ export default function AVPage() {
   const [rotationSpeed, setRotationSpeed] = useState(0.5);
   const [colorIntensity, setColorIntensity] = useState(0.7);
   const [audioReactivity, setAudioReactivity] = useState(0.7);
-  const [colorScheme, setColorScheme] = useState<'psychedelic' | 'natural'>('psychedelic');
+  const [colorScheme, setColorScheme] = useState<'psychedelic' | 'natural'>('natural');
 
   // Touch/gesture controls
   const [rotationOffset, setRotationOffset] = useState({ x: 0, y: 0 });
