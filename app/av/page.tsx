@@ -18,6 +18,7 @@ export default function AVPage() {
   const [rotationSpeed, setRotationSpeed] = useState(0.5);
   const [colorIntensity, setColorIntensity] = useState(0.7);
   const [audioReactivity, setAudioReactivity] = useState(0.7);
+  const [colorScheme, setColorScheme] = useState<'psychedelic' | 'natural'>('psychedelic');
 
   // Touch/gesture controls
   const [rotationOffset, setRotationOffset] = useState({ x: 0, y: 0 });
@@ -162,6 +163,7 @@ export default function AVPage() {
             colorIntensity={colorIntensity}
             audioReactivity={audioReactivity}
             rotationOffset={rotationOffset}
+            colorScheme={colorScheme}
           />
 
           {/* Audio levels indicator */}
@@ -302,6 +304,35 @@ export default function AVPage() {
                   className="w-full accent-emerald-500"
                 />
               </div>
+
+              {/* Color Scheme - only for Mandelbox */}
+              {style === 'geometric' && (
+                <div className="space-y-2">
+                  <label className="text-white/60 text-sm">Color Scheme</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setColorScheme('psychedelic')}
+                      className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                        colorScheme === 'psychedelic'
+                          ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white'
+                          : 'bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80'
+                      }`}
+                    >
+                      Psychedelic
+                    </button>
+                    <button
+                      onClick={() => setColorScheme('natural')}
+                      className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                        colorScheme === 'natural'
+                          ? 'bg-gradient-to-r from-amber-700 via-emerald-700 to-stone-600 text-white'
+                          : 'bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80'
+                      }`}
+                    >
+                      Natural
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

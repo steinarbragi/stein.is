@@ -20,6 +20,7 @@ interface AudioFractalProps {
   colorIntensity?: number;
   audioReactivity?: number;
   rotationOffset?: { x: number; y: number };
+  colorScheme?: 'psychedelic' | 'natural';
 }
 
 const vertexShader = `
@@ -300,6 +301,7 @@ const geometricShader = `
   uniform float uColorIntensity;
   uniform float uAudioReactivity;
   uniform vec2 uRotationOffset;
+  uniform float uColorScheme; // 0 = psychedelic, 1 = natural
 
   #define MAX_STEPS 128
   #define MAX_DIST 150.0
@@ -356,6 +358,53 @@ const geometricShader = `
     vec3 b = vec3(0.5, 0.4, 0.5);
     vec3 c = vec3(1.2, 1.0, 1.3);
     vec3 d = vec3(0.25, 0.1, 0.35);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // === NATURAL/EARTHY PALETTES ===
+
+  // Earth tones - rich browns, deep ochres
+  vec3 earthPalette(float t) {
+    vec3 a = vec3(0.35, 0.25, 0.15);
+    vec3 b = vec3(0.45, 0.35, 0.2);
+    vec3 c = vec3(0.9, 0.8, 0.6);
+    vec3 d = vec3(0.0, 0.08, 0.15);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Forest greens - deep shadows to bright moss
+  vec3 forestPalette(float t) {
+    vec3 a = vec3(0.15, 0.35, 0.15);
+    vec3 b = vec3(0.3, 0.45, 0.2);
+    vec3 c = vec3(0.7, 1.0, 0.6);
+    vec3 d = vec3(0.15, 0.2, 0.1);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Stone - deep charcoal to bright mineral
+  vec3 stonePalette(float t) {
+    vec3 a = vec3(0.3, 0.28, 0.25);
+    vec3 b = vec3(0.35, 0.33, 0.3);
+    vec3 c = vec3(0.6, 0.6, 0.5);
+    vec3 d = vec3(0.0, 0.03, 0.08);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Clay - terracotta to burnt sienna
+  vec3 clayPalette(float t) {
+    vec3 a = vec3(0.55, 0.3, 0.18);
+    vec3 b = vec3(0.4, 0.25, 0.15);
+    vec3 c = vec3(0.8, 0.6, 0.4);
+    vec3 d = vec3(0.0, 0.12, 0.2);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Sky - deep twilight to bright horizon
+  vec3 skyPalette(float t) {
+    vec3 a = vec3(0.3, 0.38, 0.5);
+    vec3 b = vec3(0.3, 0.35, 0.4);
+    vec3 c = vec3(0.6, 0.7, 0.9);
+    vec3 d = vec3(0.25, 0.3, 0.35);
     return a + b * cos(6.28318 * (c * t + d));
   }
 
@@ -549,26 +598,10 @@ const geometricShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      // Varied organic light colors
-      vec3 lightCol1 = mix(
-        warmPalette(time * 0.006 + trap1 * 0.3),
-        coolPalette(time * 0.005 + uBass * 0.3 * uAudioReactivity),
-        sin(time * 0.02) * 0.5 + 0.5
-      );
-      vec3 lightCol2 = etherealPalette(time * 0.004 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity);
-      vec3 lightCol3 = naturePalette(time * 0.003 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity);
-
-      // Organic color variation based on position and trap values
+      // Color variation based on position and trap values
       float colorT1 = trap1 * 1.2 + time * 0.008 + uBass * 0.4 * uAudioReactivity;
       float colorT2 = trap2 * 1.5 + time * 0.006 + uMid * 0.3 * uAudioReactivity;
       float colorT3 = trapDetail * 2.0 + time * 0.01 + uHigh * 0.2 * uAudioReactivity;
-
-      // Multiple organic color layers
-      vec3 warmLayer = warmPalette(colorT1 + sin(trap2 * 3.0) * 0.2);
-      vec3 coolLayer = coolPalette(colorT2 + cos(trap1 * 2.5) * 0.3);
-      vec3 natureLayer = naturePalette(colorT3 + sin(trapDetail * 4.0) * 0.15);
-      vec3 etherealLayer = etherealPalette(colorT1 * 0.7 + colorT2 * 0.3);
-      vec3 jewelLayer = jewelPalette(trap1 + trap2 + time * 0.005);
 
       // Blend factors based on fractal structure
       float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0 + uBass * 2.0 * uAudioReactivity) * 0.5 + 0.5;
@@ -577,16 +610,62 @@ const geometricShader = `
       float depthBlend = exp(-trap1 * 2.0);
       float edgeBlend = exp(-trapDetail * 1.5);
 
-      // Layer the colors organically
-      vec3 surfaceColor = mix(warmLayer, coolLayer, blend1);
-      surfaceColor = mix(surfaceColor, natureLayer, blend2 * 0.6);
-      surfaceColor = mix(surfaceColor, etherealLayer, blend3 * 0.4 * uColorIntensity);
-      surfaceColor = mix(surfaceColor, jewelLayer, depthBlend * 0.3 + edgeBlend * 0.2);
+      // === PSYCHEDELIC COLOR SCHEME ===
+      vec3 psy_warmLayer = warmPalette(colorT1 + sin(trap2 * 3.0) * 0.2);
+      vec3 psy_coolLayer = coolPalette(colorT2 + cos(trap1 * 2.5) * 0.3);
+      vec3 psy_natureLayer = naturePalette(colorT3 + sin(trapDetail * 4.0) * 0.15);
+      vec3 psy_etherealLayer = etherealPalette(colorT1 * 0.7 + colorT2 * 0.3);
+      vec3 psy_jewelLayer = jewelPalette(trap1 + trap2 + time * 0.005);
 
-      // Audio pulses bring out different colors
-      surfaceColor = mix(surfaceColor, warmLayer, uBass * 0.35 * uAudioReactivity);
-      surfaceColor = mix(surfaceColor, coolLayer, uMid * 0.25 * uAudioReactivity);
-      surfaceColor = mix(surfaceColor, etherealLayer, uHigh * 0.2 * uAudioReactivity);
+      vec3 psySurface = mix(psy_warmLayer, psy_coolLayer, blend1);
+      psySurface = mix(psySurface, psy_natureLayer, blend2 * 0.6);
+      psySurface = mix(psySurface, psy_etherealLayer, blend3 * 0.4 * uColorIntensity);
+      psySurface = mix(psySurface, psy_jewelLayer, depthBlend * 0.3 + edgeBlend * 0.2);
+      psySurface = mix(psySurface, psy_warmLayer, uBass * 0.35 * uAudioReactivity);
+      psySurface = mix(psySurface, psy_coolLayer, uMid * 0.25 * uAudioReactivity);
+      psySurface = mix(psySurface, psy_etherealLayer, uHigh * 0.2 * uAudioReactivity);
+
+      vec3 psyLight1 = mix(warmPalette(time * 0.006 + trap1 * 0.3), coolPalette(time * 0.005 + uBass * 0.3 * uAudioReactivity), sin(time * 0.02) * 0.5 + 0.5);
+      vec3 psyLight2 = etherealPalette(time * 0.004 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity);
+      vec3 psyLight3 = naturePalette(time * 0.003 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity);
+
+      // === NATURAL COLOR SCHEME ===
+      vec3 nat_earthLayer = earthPalette(colorT1 + sin(trap2 * 3.0) * 0.25);
+      vec3 nat_forestLayer = forestPalette(colorT2 + cos(trap1 * 2.5) * 0.3);
+      vec3 nat_stoneLayer = stonePalette(colorT3 + sin(trapDetail * 4.0) * 0.2);
+      vec3 nat_clayLayer = clayPalette(colorT1 * 0.6 + colorT2 * 0.4 + trap1 * 0.5);
+      vec3 nat_skyLayer = skyPalette(trap1 + trap2 + time * 0.004);
+
+      // More aggressive blending for higher contrast
+      float natBlend1 = pow(blend1, 0.7); // Sharper transitions
+      float natBlend2 = pow(blend2, 0.6);
+
+      vec3 natSurface = mix(nat_stoneLayer * 0.7, nat_earthLayer, natBlend1);
+      natSurface = mix(natSurface, nat_forestLayer, natBlend2 * 0.7);
+      natSurface = mix(natSurface, nat_clayLayer, blend3 * 0.5 * uColorIntensity);
+      natSurface = mix(natSurface, nat_skyLayer * 1.2, depthBlend * 0.35 + edgeBlend * 0.25);
+
+      // Stronger audio color response
+      natSurface = mix(natSurface, nat_clayLayer * 1.3, uBass * 0.4 * uAudioReactivity);
+      natSurface = mix(natSurface, nat_forestLayer * 1.2, uMid * 0.3 * uAudioReactivity);
+      natSurface = mix(natSurface, nat_skyLayer * 1.1, uHigh * 0.25 * uAudioReactivity);
+
+      // Warmer, more contrasted lighting
+      vec3 natLight1 = mix(clayPalette(time * 0.005 + trap1 * 0.3) * 1.2, stonePalette(time * 0.004 + uBass * 0.3 * uAudioReactivity), sin(time * 0.015) * 0.5 + 0.5);
+      vec3 natLight2 = forestPalette(time * 0.003 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity) * 1.1;
+      vec3 natLight3 = earthPalette(time * 0.004 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity) * 0.9;
+
+      // Mix between schemes based on uColorScheme
+      vec3 surfaceColor = mix(psySurface, natSurface, uColorScheme);
+      vec3 lightCol1 = mix(psyLight1, natLight1, uColorScheme);
+      vec3 lightCol2 = mix(psyLight2, natLight2, uColorScheme);
+      vec3 lightCol3 = mix(psyLight3, natLight3, uColorScheme);
+
+      // Keep references for rim/glow (blend between schemes)
+      vec3 warmLayer = mix(psy_warmLayer, nat_clayLayer, uColorScheme);
+      vec3 coolLayer = mix(psy_coolLayer, nat_skyLayer, uColorScheme);
+      vec3 etherealLayer = mix(psy_etherealLayer, nat_forestLayer, uColorScheme);
+      vec3 jewelLayer = mix(psy_jewelLayer, nat_stoneLayer, uColorScheme);
 
       // Intensity with more color preservation
       float intensity = 0.7 + uColorIntensity * 0.4 + uBass * 0.3 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
@@ -624,7 +703,7 @@ const geometricShader = `
 
       // Overall audio reactivity with color
       col += mix(warmLayer, coolLayer, uBass) * uBass * 0.15 * uAudioReactivity;
-      col += natureLayer * uVolume * 0.1 * uAudioReactivity;
+      col += mix(warmLayer, etherealLayer, 0.5) * uVolume * 0.1 * uAudioReactivity;
 
       // Depth fade for sense of scale - gentler for vast spaces
       float depthFade = exp(-d * 0.04);
@@ -686,6 +765,7 @@ function FractalMesh({
   colorIntensity = 0.7,
   audioReactivity = 0.7,
   rotationOffset = { x: 0, y: 0 },
+  colorScheme = 'psychedelic',
 }: AudioFractalProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { gl } = useThree();
@@ -705,6 +785,7 @@ function FractalMesh({
       uColorIntensity: { value: 0.7 },
       uAudioReactivity: { value: 0.7 },
       uRotationOffset: { value: new THREE.Vector2(0, 0) },
+      uColorScheme: { value: 0 },
     }),
     []
   );
@@ -733,6 +814,7 @@ function FractalMesh({
       material.uniforms.uColorIntensity.value = colorIntensity;
       material.uniforms.uAudioReactivity.value = audioReactivity;
       material.uniforms.uRotationOffset.value.set(rotationOffset.x, rotationOffset.y);
+      material.uniforms.uColorScheme.value = colorScheme === 'natural' ? 1.0 : 0.0;
     }
   });
 
