@@ -323,6 +323,42 @@ const geometricShader = `
     return a + b * cos(6.28318 * (c * t + d));
   }
 
+  // Warm sunset/fire palette
+  vec3 warmPalette(float t) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.3);
+    vec3 c = vec3(1.0, 0.7, 0.4);
+    vec3 d = vec3(0.0, 0.15, 0.20);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Cool ocean/aurora palette
+  vec3 coolPalette(float t) {
+    vec3 a = vec3(0.5, 0.5, 0.6);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(0.8, 1.0, 1.0);
+    vec3 d = vec3(0.2, 0.25, 0.5);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Nature/forest palette
+  vec3 naturePalette(float t) {
+    vec3 a = vec3(0.5, 0.5, 0.4);
+    vec3 b = vec3(0.4, 0.5, 0.4);
+    vec3 c = vec3(1.0, 1.0, 0.8);
+    vec3 d = vec3(0.1, 0.2, 0.15);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
+  // Ethereal/mystical palette
+  vec3 etherealPalette(float t) {
+    vec3 a = vec3(0.6, 0.5, 0.6);
+    vec3 b = vec3(0.5, 0.4, 0.5);
+    vec3 c = vec3(1.2, 1.0, 1.3);
+    vec3 d = vec3(0.25, 0.1, 0.35);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
   mat2 rot2D(float a) {
     float s = sin(a), c = cos(a);
     return mat2(c, -s, s, c);
@@ -513,41 +549,47 @@ const geometricShader = `
       float diff2 = max(dot(n, lightDir2), 0.0);
       float diff3 = max(dot(n, lightDir3), 0.0);
 
-      // Cooler, more monumental light colors
+      // Varied organic light colors
       vec3 lightCol1 = mix(
-        vec3(0.9, 0.95, 1.0), // Cool white
-        organicPalette(time * 0.004 + uBass * 0.2 * uAudioReactivity, 0.05),
-        0.3 + uBass * 0.3 * uAudioReactivity
+        warmPalette(time * 0.006 + trap1 * 0.3),
+        coolPalette(time * 0.005 + uBass * 0.3 * uAudioReactivity),
+        sin(time * 0.02) * 0.5 + 0.5
       );
-      vec3 lightCol2 = jewelPalette(time * 0.003 + trap1 * 0.15 + uMid * 0.2 * uAudioReactivity) * 0.8;
-      vec3 lightCol3 = vec3(0.4, 0.5, 0.7) * (0.5 + uHigh * 0.3 * uAudioReactivity); // Blue undertone
+      vec3 lightCol2 = etherealPalette(time * 0.004 + trap2 * 0.2 + uMid * 0.25 * uAudioReactivity);
+      vec3 lightCol3 = naturePalette(time * 0.003 + trapDetail * 0.4 + uHigh * 0.2 * uAudioReactivity);
 
-      // Architectural color palette - stone, concrete, metal tones
-      float colorT = trap1 * 0.8 + trap2 * 0.4 + time * 0.005 + uBass * 0.3 * uAudioReactivity;
-      float colorShift = uBass * 0.1 * uAudioReactivity + uMid * 0.08 * uAudioReactivity;
+      // Organic color variation based on position and trap values
+      float colorT1 = trap1 * 1.2 + time * 0.008 + uBass * 0.4 * uAudioReactivity;
+      float colorT2 = trap2 * 1.5 + time * 0.006 + uMid * 0.3 * uAudioReactivity;
+      float colorT3 = trapDetail * 2.0 + time * 0.01 + uHigh * 0.2 * uAudioReactivity;
 
-      // Base material - cool grey stone
-      vec3 stoneBase = vec3(0.45, 0.48, 0.52);
-      // Accent color that shifts with audio
-      vec3 accentColor = organicPalette(colorT, colorShift);
-      vec3 metallic = jewelPalette(trapDetail * 1.2 + trap2 * 0.5 + time * 0.004);
+      // Multiple organic color layers
+      vec3 warmLayer = warmPalette(colorT1 + sin(trap2 * 3.0) * 0.2);
+      vec3 coolLayer = coolPalette(colorT2 + cos(trap1 * 2.5) * 0.3);
+      vec3 natureLayer = naturePalette(colorT3 + sin(trapDetail * 4.0) * 0.15);
+      vec3 etherealLayer = etherealPalette(colorT1 * 0.7 + colorT2 * 0.3);
+      vec3 jewelLayer = jewelPalette(trap1 + trap2 + time * 0.005);
 
-      // Edge highlighting based on trap values
-      float edgeFactor = exp(-trap1 * 3.0);
-      float depthFactor = exp(-trapDetail * 2.0);
+      // Blend factors based on fractal structure
+      float blend1 = sin(trap1 * 4.0 + trapDetail * 2.0 + uBass * 2.0 * uAudioReactivity) * 0.5 + 0.5;
+      float blend2 = cos(trap2 * 3.5 + trap1 * 1.5 + uMid * 1.5 * uAudioReactivity) * 0.5 + 0.5;
+      float blend3 = sin(trapDetail * 5.0 + trap2 * 2.0 + time * 0.1) * 0.5 + 0.5;
+      float depthBlend = exp(-trap1 * 2.0);
+      float edgeBlend = exp(-trapDetail * 1.5);
 
-      // Blend between stone and colored accents
-      float blend1 = sin(trap1 * 3.0 + trapDetail * 1.5 + uBass * 1.5 * uAudioReactivity) * 0.5 + 0.5;
-      float blend2 = cos(trap2 * 2.5 + trap1 * 0.8) * 0.5 + 0.5;
+      // Layer the colors organically
+      vec3 surfaceColor = mix(warmLayer, coolLayer, blend1);
+      surfaceColor = mix(surfaceColor, natureLayer, blend2 * 0.6);
+      surfaceColor = mix(surfaceColor, etherealLayer, blend3 * 0.4 * uColorIntensity);
+      surfaceColor = mix(surfaceColor, jewelLayer, depthBlend * 0.3 + edgeBlend * 0.2);
 
-      vec3 surfaceColor = mix(stoneBase, accentColor, blend1 * 0.4 * uColorIntensity);
-      surfaceColor = mix(surfaceColor, metallic, edgeFactor * 0.3 + depthFactor * 0.2);
+      // Audio pulses bring out different colors
+      surfaceColor = mix(surfaceColor, warmLayer, uBass * 0.35 * uAudioReactivity);
+      surfaceColor = mix(surfaceColor, coolLayer, uMid * 0.25 * uAudioReactivity);
+      surfaceColor = mix(surfaceColor, etherealLayer, uHigh * 0.2 * uAudioReactivity);
 
-      // Audio adds color intensity
-      surfaceColor = mix(surfaceColor, accentColor, uBass * 0.4 * uAudioReactivity);
-
-      // Intensity pulses with audio
-      float intensity = 0.6 + uColorIntensity * 0.4 + uBass * 0.35 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
+      // Intensity with more color preservation
+      float intensity = 0.7 + uColorIntensity * 0.4 + uBass * 0.3 * uAudioReactivity + uVolume * 0.15 * uAudioReactivity;
       surfaceColor *= intensity;
 
       float ao = clamp(trap1 * 0.8 + 0.2, 0.0, 1.0);
@@ -559,28 +601,30 @@ const geometricShader = `
       col += surfaceColor * diff2 * lightCol2 * 0.5 * (1.0 + uMid * 0.3 * uAudioReactivity);
       col += surfaceColor * diff3 * lightCol3 * 0.4 * (1.0 + uHigh * 0.3 * uAudioReactivity);
 
-      // Subtle rim light - defines edges in the vast space
-      float rim = pow(1.0 - max(dot(-rd, n), 0.0), 4.0);
+      // Organic rim light - varies across the surface
+      float rim = pow(1.0 - max(dot(-rd, n), 0.0), 3.5);
       vec3 rimColor = mix(
-        vec3(0.6, 0.7, 0.9), // Cool edge light
-        organicPalette(colorT + 0.5 + time * 0.004, 0.15),
-        uBass * 0.5 * uAudioReactivity
+        coolPalette(colorT1 + 0.3),
+        etherealPalette(colorT2 + 0.5 + time * 0.005),
+        blend2
       );
-      col += rim * rimColor * (0.15 + uMid * 0.25 * uAudioReactivity + uBass * 0.3 * uAudioReactivity);
+      rimColor = mix(rimColor, warmPalette(colorT3), uBass * 0.4 * uAudioReactivity);
+      col += rim * rimColor * (0.2 + uMid * 0.3 * uAudioReactivity + uBass * 0.35 * uAudioReactivity);
 
-      // Sharp specular for metallic/polished stone feel
+      // Specular with color variation
       vec3 viewDir = -rd;
       vec3 halfDir1 = normalize(lightDir1 + viewDir);
-      float spec = pow(max(dot(n, halfDir1), 0.0), 96.0);
-      col += spec * lightCol1 * (0.4 + uBass * 0.5 * uAudioReactivity);
+      float spec = pow(max(dot(n, halfDir1), 0.0), 64.0);
+      col += spec * mix(lightCol1, jewelLayer, 0.3) * (0.35 + uBass * 0.4 * uAudioReactivity);
 
-      // Ambient occlusion in crevices pulses with bass
-      float innerGlow = exp(-trap1 * 2.5) * 0.15;
-      col += accentColor * innerGlow * (0.3 + uBass * 0.5 * uAudioReactivity);
+      // Inner glow in crevices with organic colors
+      float innerGlow = exp(-trap1 * 2.0) * 0.2;
+      vec3 glowColor = mix(warmLayer, etherealLayer, sin(trapDetail * 3.0) * 0.5 + 0.5);
+      col += glowColor * innerGlow * (0.4 + uBass * 0.5 * uAudioReactivity);
 
-      // Overall audio reactivity
-      col += surfaceColor * uBass * 0.2 * uAudioReactivity;
-      col += vec3(0.1, 0.12, 0.15) * uVolume * 0.15 * uAudioReactivity;
+      // Overall audio reactivity with color
+      col += mix(warmLayer, coolLayer, uBass) * uBass * 0.15 * uAudioReactivity;
+      col += natureLayer * uVolume * 0.1 * uAudioReactivity;
 
       // Depth fade for sense of scale - gentler for vast spaces
       float depthFade = exp(-d * 0.04);
@@ -589,26 +633,27 @@ const geometricShader = `
 
     vec2 screenUv = gl_FragCoord.xy / uResolution.xy;
 
-    // Deep space background - very dark with subtle color shifts
-    float bgT = time * 0.002 + screenUv.x * 0.02 + screenUv.y * 0.015;
-    vec3 bgColor = vec3(0.01, 0.012, 0.018); // Near black base
-    bgColor += organicPalette(bgT, 0.1) * 0.02; // Subtle color variation
-    bgColor += jewelPalette(bgT + 0.5) * 0.01;
+    // Deep space background with organic color shifts
+    float bgT = time * 0.003 + screenUv.x * 0.03 + screenUv.y * 0.02;
+    vec3 bgColor = vec3(0.012, 0.015, 0.022); // Near black base with slight blue
+    bgColor += coolPalette(bgT) * 0.015;
+    bgColor += etherealPalette(bgT + 0.3) * 0.01;
+    bgColor += naturePalette(bgT + 0.6) * 0.008;
 
-    // Distant glow on bass hits
-    bgColor += vec3(0.02, 0.015, 0.025) * uBass * 0.5 * uAudioReactivity;
+    // Organic distant glow on bass hits
+    bgColor += warmPalette(bgT + uBass) * uBass * 0.04 * uAudioReactivity;
+    bgColor += etherealPalette(bgT + 0.5) * uMid * 0.02 * uAudioReactivity;
 
     col = mix(bgColor, col, smoothstep(MAX_DIST, MAX_DIST - 10.0, d));
 
-    // Atmospheric fog - very gradual for vast open space
+    // Atmospheric fog with organic color variation
     float fog = 1.0 - exp(-d * 0.02);
-    vec3 fogColor = mix(
-      vec3(0.015, 0.02, 0.03), // Deep blue-black near
-      vec3(0.008, 0.01, 0.012), // Darker void in distance
-      fog
-    );
-    fogColor += organicPalette(time * 0.003, 0.15) * 0.025 * (1.0 + uBass * 0.4 * uAudioReactivity);
-    col = mix(col, fogColor, fog * 0.7);
+    vec3 fogNear = coolPalette(time * 0.004 + 0.2) * 0.06;
+    vec3 fogFar = etherealPalette(time * 0.003) * 0.03;
+    vec3 fogColor = mix(fogNear, fogFar, fog);
+    fogColor += naturePalette(time * 0.005) * 0.02 * (1.0 + uBass * 0.3 * uAudioReactivity);
+    fogColor += warmPalette(time * 0.004) * uBass * 0.025 * uAudioReactivity;
+    col = mix(col, fogColor, fog * 0.65);
 
     float aberration = length(screenUv - 0.5) * (uVolume * 0.005 + uBass * 0.003) * uAudioReactivity;
     col.r *= 1.0 + aberration * 0.5;

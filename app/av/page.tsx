@@ -27,6 +27,8 @@ export default function AVPage() {
     initialAngle: number;
     initialRotation: { x: number; y: number };
     lastTouchCount: number;
+    // Single finger drag
+    lastSingleTouch: { x: number; y: number } | null;
   } | null>(null);
 
   const getTouchDistance = (touches: TouchList) => {
@@ -53,12 +55,25 @@ export default function AVPage() {
         initialAngle: getTouchAngle(e.touches),
         initialRotation: { ...rotationOffset },
         lastTouchCount: 2,
+        lastSingleTouch: null,
+      };
+    } else if (e.touches.length === 1) {
+      // Single finger drag for rotation
+      touchStateRef.current = {
+        initialDistance: 0,
+        initialZoom: zoomLevel,
+        initialAngle: 0,
+        initialRotation: { ...rotationOffset },
+        lastTouchCount: 1,
+        lastSingleTouch: { x: e.touches[0].clientX, y: e.touches[0].clientY },
       };
     }
   }, [zoomLevel, rotationOffset]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (e.touches.length === 2 && touchStateRef.current) {
+    if (!touchStateRef.current) return;
+
+    if (e.touches.length === 2) {
       e.preventDefault();
 
       // Pinch to zoom
@@ -67,13 +82,27 @@ export default function AVPage() {
       const newZoom = Math.max(0, Math.min(1, touchStateRef.current.initialZoom + (scale - 1) * 0.5));
       setZoomLevel(newZoom);
 
-      // Two-finger rotation
+      // Two-finger twist rotation
       const currentAngle = getTouchAngle(e.touches);
       const angleDelta = currentAngle - touchStateRef.current.initialAngle;
       setRotationOffset({
         x: touchStateRef.current.initialRotation.x + angleDelta * 2,
         y: touchStateRef.current.initialRotation.y,
       });
+    } else if (e.touches.length === 1 && touchStateRef.current.lastSingleTouch) {
+      e.preventDefault();
+
+      // Single finger drag for rotation
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStateRef.current.lastSingleTouch.x;
+      const deltaY = touch.clientY - touchStateRef.current.lastSingleTouch.y;
+
+      setRotationOffset(prev => ({
+        x: prev.x + deltaX * 0.005,
+        y: prev.y + deltaY * 0.005,
+      }));
+
+      touchStateRef.current.lastSingleTouch = { x: touch.clientX, y: touch.clientY };
     }
   }, []);
 
