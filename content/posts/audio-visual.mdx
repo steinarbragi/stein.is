@@ -1,0 +1,335 @@
+---
+title: "Making Fractals Dance to Music"
+slug: "audio-visual"
+date: "2026-01-04"
+excerpt: "How I built an audio-reactive fractal visualizer using the Web Audio API and ray marching shaders."
+tags: ["audio", "visual", "experiments", "threejs", "react", "shaders", "webgl"]
+published: true
+---
+
+# Making Fractals Dance to Music
+
+There's something hypnotic about watching shapes move to music. Not arbitrary wiggles, but movement that *feels* connected to the sound. When the bass hits, you want to feel it visually. When the melody soars, the colors should follow. Remember the old visualizers in windows media player and winamp?
+
+A few years ago, I experienced visuals while listening to music with my eyes closed in a dark room. It was a truly magical experience. I've been wanting to build something like that ever since. 
+
+I later came across this video by which inspired me futher.
+<YouTube id="S530Vwa33G0" />
+
+Yesterday I finally started implementing it. My artificial friend Claude assisted me with the project. I've been aware of mandlebulb and mandlebox fractals for a while now and I've been wanting to try to make them dance to music.
+
+I built an audio-reactive fractal visualizer that does exactly this. Drop in your favorite song or use the microphone and and watch a 3D Mandelbulb fractal pulse, shift, and transform in response to every beat and frequency.
+
+<FractalEmbed style="mandelbulb" height={450} />
+
+I then took it a few steps further and made a geometric (mandlebox) fractal style as well.
+
+<FractalEmbed style="geometric" height={450} />
+
+There's still a lot of work to do on the project. I'd like to get my implementation closer to the one in the video, with better lighting, smooth transitions, and better audio analysis.
+
+## The Two Halves of the System
+
+The project breaks down into two parts:
+
+1. **Audio Analysis** - Capturing sound and breaking it into useful data
+2. **Visual Rendering** - Using that data to drive a real-time fractal
+
+Let's look at each.
+
+---
+
+## Part 1: Listening to the Music
+
+Before we can make anything react to audio, we need to understand what we're hearing. The Web Audio API gives us tools to analyze sound in real-time.
+
+### The Core Idea
+
+Sound is just vibrations at different frequencies. A bass drum produces low frequencies (around 60-100 Hz). A hi-hat produces high frequencies (8000+ Hz). By separating these frequency ranges, we can make different visual elements respond to different parts of the music.
+
+The `useAudioAnalyzer` hook handles this:
+
+```typescript
+export interface AudioData {
+  frequencyData: Uint8Array;
+  timeDomainData: Uint8Array;
+  bass: number;      // Low frequencies (0-250Hz)
+  mid: number;       // Mid frequencies (250-2000Hz)
+  high: number;      // High frequencies (2000Hz+)
+  volume: number;    // Overall volume
+}
+```
+
+Every frame, we get four simple numbers between 0 and 1:
+- **bass** - How much low-end punch is happening right now
+- **mid** - The presence of vocals, guitars, synths
+- **high** - The sparkle and sizzle of cymbals and hi-hats
+- **volume** - Overall loudness
+
+### How the Analysis Works
+
+The Web Audio API's `AnalyserNode` does the heavy lifting. It performs a Fast Fourier Transform (FFT), which converts the raw audio waveform into frequency data.
+
+```typescript
+const analyze = useCallback(() => {
+  const analyzer = analyzerRef.current;
+  const frequencyData = new Uint8Array(bufferLength);
+
+  // Get frequency spectrum data
+  analyzer.getByteFrequencyData(frequencyData);
+
+  // Split into frequency bands
+  const bassEnd = Math.floor(bufferLength * 0.1);   // ~250Hz
+  const midEnd = Math.floor(bufferLength * 0.5);    // ~2000Hz
+
+  let bassSum = 0, midSum = 0, highSum = 0;
+
+  for (let i = 0; i < bufferLength; i++) {
+    const value = frequencyData[i];
+    if (i < bassEnd) bassSum += value;
+    else if (i < midEnd) midSum += value;
+    else highSum += value;
+  }
+
+  // Normalize and boost for visibility
+  const bass = Math.min(1, Math.pow(bassRaw, 0.7) * 1.5);
+  const mid = Math.min(1, Math.pow(midRaw, 0.7) * 1.8);
+  const high = Math.min(1, Math.pow(highRaw, 0.6) * 2.2);
+
+  // Loop at 60fps
+  requestAnimationFrame(analyze);
+}, []);
+```
+
+The power curve (`Math.pow(..., 0.7)`) makes quiet sounds more visible. Without it, you'd only see reactions to the loudest moments.
+
+### Multiple Audio Sources
+
+The hook supports three ways to get audio:
+
+1. **Microphone** - Pick up sound from the room
+2. **System Audio** - Capture what's playing in a browser tab
+3. **File Upload** - Load an MP3 or WAV directly
+
+System audio capture uses `getDisplayMedia`, which is primarily designed for screen sharing. But if you share a Chrome tab and check "Share tab audio", you get the audio stream without the video.
+
+```typescript
+stream = await navigator.mediaDevices.getDisplayMedia({
+  video: { width: 1, height: 1, frameRate: 1 }, // Minimal video
+  audio: {
+    suppressLocalAudioPlayback: false,
+    autoGainControl: false,
+    echoCancellation: false,
+    noiseSuppression: false,
+  },
+});
+
+// Immediately stop video - we only need audio
+stream.getVideoTracks().forEach(track => track.stop());
+```
+
+{/* SCREENSHOT: Audio source selection UI */}
+
+---
+
+## Part 2: The Fractal Renderer
+
+Now for the visually impressive part. The `AudioFractal` component renders a 3D fractal using ray marching - a technique that draws shapes by "marching" rays from the camera until they hit something.
+
+### What's a Mandelbulb?
+
+The Mandelbulb is the 3D cousin of the famous Mandelbrot set. It's created by iterating a formula in 3D space and checking if points escape to infinity. The boundary between "escapes" and "doesn't escape" forms an infinitely detailed surface.
+
+{/* SCREENSHOT: Mandelbulb fractal close-up showing detail */}
+
+The formula involves converting to spherical coordinates and raising to a power:
+
+```glsl
+vec4 mandelbulb(vec3 pos, float power) {
+  vec3 z = pos;
+  float dr = 1.0;
+  float r = 0.0;
+
+  for (int i = 0; i < 10; i++) {
+    r = length(z);
+    if (r > 2.0) break;
+
+    // Spherical coordinates
+    float theta = acos(z.z / r);
+    float phi = atan(z.y, z.x);
+
+    // Raise to power
+    float zr = pow(r, power);
+    theta = theta * power;
+    phi = phi * power;
+
+    // Convert back to cartesian
+    z = zr * vec3(
+      sin(theta) * cos(phi),
+      sin(phi) * sin(theta),
+      cos(theta)
+    );
+    z += pos;
+  }
+
+  return vec4(trapPos, 0.5 * log(r) * r / dr);
+}
+```
+
+The magic number is `power`. At power 8, you get the classic Mandelbulb shape. But when we vary that power with the music...
+
+### Making It React to Audio
+
+The audio data gets passed into the shader as uniforms (global variables the shader can read). Then we use them everywhere:
+
+**Shape distortion** - Bass changes the fractal's power parameter, fundamentally altering its structure:
+
+```glsl
+float audioMod = uAudioReactivity * (uBass * 2.5 + uMid * 0.6 + uHigh * 0.3);
+float power = 8.0 + sin(uTime * 0.1) * 1.0 + audioMod;
+```
+
+**Rotation wobble** - The fractal sways with the beat:
+
+```glsl
+float bassWobble = uBass * 0.12 * uAudioReactivity;
+float midWobble = uMid * 0.08 * uAudioReactivity;
+p.xz *= rot2D(uTime * rotSpeed + bassWobble);
+p.xy *= rot2D(uTime * rotSpeed * 0.5 + midWobble);
+```
+
+**Scale pulsing** - Bass hits make the fractal "breathe":
+
+```glsl
+float scale = 1.0 + uVolume * 0.2 * uAudioReactivity
+            + uBass * 0.35 * uAudioReactivity;
+```
+
+**Color shifts** - Different frequencies shift different color components:
+
+```glsl
+hue += uBass * 0.4 * uAudioReactivity
+     + uHigh * 0.15 * uAudioReactivity
+     + uMid * 0.1 * uAudioReactivity;
+
+float sat = 0.5 + uColorIntensity * 0.5
+          + uVolume * 0.3 * uAudioReactivity;
+float lit = 0.45 + uBass * 0.25 * uAudioReactivity;
+```
+
+**Brightness pulses** - The whole scene brightens with bass hits:
+
+```glsl
+float bassBrightness = 1.0 + uBass * 0.4 * uAudioReactivity;
+col = surfaceColor * 0.15 * bassBrightness;
+```
+
+{/* SCREENSHOT: Side-by-side comparison showing fractal with low vs high bass */}
+
+### Ray Marching: Drawing Without Triangles
+
+Traditional 3D graphics draw surfaces using triangles. But fractals have infinite detail - you can't triangulate them. Instead, we use ray marching with signed distance functions (SDFs).
+
+The idea: for any point in space, we can calculate the distance to the nearest surface. We "march" rays from the camera, taking steps equal to this distance, until we get close enough to call it a hit.
+
+```glsl
+vec4 rayMarch(vec3 ro, vec3 rd) {
+  float d = 0.0;
+
+  for (int i = 0; i < MAX_STEPS; i++) {
+    vec3 p = ro + rd * d;
+    float dS = sceneSDF(p).w;  // Distance to surface
+    d += dS;
+    if (d > MAX_DIST || abs(dS) < SURF_DIST) break;
+  }
+
+  return vec4(trapPos, d);
+}
+```
+
+This runs for every pixel, every frame. Modern GPUs handle this beautifully.
+
+### Two Visual Styles
+
+The component supports two fractal styles:
+
+**Mandelbulb** - The organic, alien bulb shape. Good for flowing, psychedelic visuals.
+
+**Geometric** - A hybrid fractal using box folding and sphere folding. Creates architectural, cathedral-like structures with sharp edges and vast interior spaces.
+
+{/* SCREENSHOT: Geometric/architectural fractal style */}
+
+The geometric style uses different fractal operations:
+
+```glsl
+vec3 boxFold(vec3 z, float foldLimit) {
+  return clamp(z, -foldLimit, foldLimit) * 2.0 - z;
+}
+
+void sphereFold(inout vec3 z, inout float dz, float minR, float maxR) {
+  float r2 = dot(z, z);
+  if (r2 < minR) {
+    float temp = maxR / minR;
+    z *= temp;
+    dz *= temp;
+  } else if (r2 < maxR) {
+    float temp = maxR / r2;
+    z *= temp;
+    dz *= temp;
+  }
+}
+```
+
+These simple operations, repeated many times, create the intricate geometric patterns.
+
+---
+
+## The Result
+
+Put it all together and you get something that feels alive. The bass doesn't just trigger a flash - it reshapes the entire geometry. The highs sparkle in the colors. The mids add warmth to the lighting.
+
+{/* SCREENSHOT: Final result with all controls visible */}
+
+### Controls
+
+The visualizer exposes several parameters:
+- **Zoom** - Manual or auto-zooming that slowly dives into the fractal
+- **Rotation Speed** - How fast the fractal tumbles
+- **Color Intensity** - From subtle to vivid
+- **Audio Reactivity** - How much the audio affects the visuals
+- **Color Scheme** - Psychedelic (shifting rainbows) or Natural (earth tones)
+
+You can also rotate the view by dragging, adding another layer of interactivity.
+
+---
+
+## Try It Yourself
+
+The code is available on this site. Load up your favorite electronic track and watch the Mandelbulb transform. Or try something classical and see how the different frequency profile creates entirely different movements.
+
+The best music for this kind of visualizer has:
+- Strong bass hits (for dramatic shape changes)
+- Clear separation between frequency ranges
+- Dynamic range (quiet parts and loud parts)
+
+Electronic music works great, but so does orchestral music with its timpani and brass.
+
+---
+
+## Technical Notes
+
+For those who want to dig deeper:
+
+- The shaders run at native resolution with 1-2x device pixel ratio
+- Audio analysis happens at 60fps using `requestAnimationFrame`
+- FFT size is 256 by default (128 frequency bins)
+- Ray marching uses 80-128 steps depending on the fractal style
+- Smoothing prevents jarring visual jumps between frames
+
+The entire visualization runs on the GPU. The CPU just passes audio data and handles user interaction. This is why it can run smoothly even on mobile devices (though battery life will suffer).
+
+{/* SCREENSHOT: Performance metrics or debug view if available */}
+
+---
+
+What started as an experiment in audio visualization turned into something I find genuinely mesmerizing. There's something about the marriage of mathematical beauty and musical rhythm that hits differently than either alone.

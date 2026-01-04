@@ -1,5 +1,6 @@
 import type { MDXComponents } from 'mdx/types';
 import { YouTube, Twitter, Instagram, CodePen, Spotify, Vimeo, GenericEmbed } from './Embeds';
+import { FractalEmbed } from './av/FractalEmbed';
 
 export function getMDXComponents(components: MDXComponents = {}): MDXComponents {
   return {
@@ -10,6 +11,7 @@ export function getMDXComponents(components: MDXComponents = {}): MDXComponents 
     Spotify,
     Vimeo,
     GenericEmbed,
+    FractalEmbed,
     h1: ({ children }) => (
       <h1 className="text-4xl font-bold text-white mt-8 mb-4">
         {children}

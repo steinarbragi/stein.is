@@ -23,14 +23,14 @@ interface AudioFractalProps {
   colorScheme?: 'psychedelic' | 'natural';
 }
 
-const vertexShader = `
+const vertexShader = /*glsl*/`
   void main() {
     gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
 
 // ============== MANDELBULB SHADER ==============
-const mandelbulbShader = `
+const mandelbulbShader = /*glsl*/`
   precision highp float;
 
   uniform float uTime;
