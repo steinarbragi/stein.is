@@ -546,8 +546,21 @@ const geometricShader = `
     vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
     float time = uTime + TIME_OFFSET;
 
-    // Zoom controls how deep into the structure we go
-    float zoomFactor = 1.0 + uZoomLevel * 2.5;
+    // Auto zoom - slow zoom in, then gradual zoom back out when close
+    float zoomCycle = time * uZoomSpeed * 0.025;
+    // Sawtooth-like wave: slow rise, gradual fall
+    float sawWave = fract(zoomCycle);
+    // Ease in (slow start), then ease out (gradual pullback)
+    float autoZoomWave = sawWave < 0.7
+      ? pow(sawWave / 0.7, 0.6) // Slow zoom in (70% of cycle)
+      : 1.0 - pow((sawWave - 0.7) / 0.3, 0.5) * 0.7; // Gradual zoom out (30% of cycle)
+
+    // Gentler zoom range - starts further out, doesn't get as close
+    float autoZoomFactor = 0.6 + autoZoomWave * 1.2;
+    float manualZoomFactor = 0.6 + uZoomLevel * 2.0;
+
+    // Mix between manual and auto zoom
+    float zoomFactor = mix(manualZoomFactor, autoZoomFactor, uAutoZoom);
     zoomFactor += uBass * 0.08 * uAudioReactivity + uVolume * 0.06 * uAudioReactivity;
 
     // Camera distance for architectural scale

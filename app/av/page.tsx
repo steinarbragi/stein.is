@@ -157,7 +157,7 @@ export default function AVPage() {
             volume={audioData.volume}
             style={style}
             zoomLevel={zoomLevel}
-            autoZoom={style === 'geometric' ? false : autoZoom}
+            autoZoom={autoZoom}
             zoomSpeed={zoomSpeed}
             rotationSpeed={rotationSpeed}
             colorIntensity={colorIntensity}
@@ -218,21 +218,19 @@ export default function AVPage() {
             <div className="absolute bottom-20 right-8 w-64 bg-black/80 backdrop-blur-sm rounded-lg p-4 space-y-4 border border-white/10">
               <h3 className="text-white/70 text-xs font-medium uppercase tracking-wider">Controls</h3>
 
-              {/* Auto Zoom Toggle - only for Mandelbulb */}
-              {style === 'mandelbulb' && (
-                <div className="flex items-center justify-between">
-                  <label className="text-white/60 text-sm">Auto Zoom</label>
-                  <button
-                    onClick={() => setAutoZoom(!autoZoom)}
-                    className={`w-10 h-5 rounded-full transition-colors ${autoZoom ? 'bg-emerald-500' : 'bg-white/20'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white transition-transform mx-0.5 ${autoZoom ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              )}
+              {/* Auto Zoom Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-white/60 text-sm">Auto Zoom</label>
+                <button
+                  onClick={() => setAutoZoom(!autoZoom)}
+                  className={`w-10 h-5 rounded-full transition-colors ${autoZoom ? 'bg-emerald-500' : 'bg-white/20'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform mx-0.5 ${autoZoom ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
 
-              {/* Zoom Level (only when auto zoom is off or Mandelbox) */}
-              {(style === 'geometric' || !autoZoom) && (
+              {/* Zoom Level (only when auto zoom is off) */}
+              {!autoZoom && (
                 <div className="space-y-1">
                   <label className="text-white/60 text-sm">Zoom Level</label>
                   <input
@@ -247,8 +245,8 @@ export default function AVPage() {
                 </div>
               )}
 
-              {/* Zoom Speed (only when auto zoom is on and Mandelbulb) */}
-              {style === 'mandelbulb' && autoZoom && (
+              {/* Zoom Speed (only when auto zoom is on) */}
+              {autoZoom && (
                 <div className="space-y-1">
                   <label className="text-white/60 text-sm">Zoom Speed</label>
                   <input
