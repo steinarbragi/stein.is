@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { MDXRemote } from 'next-mdx-remote/rsc';
+import rehypePrettyCode from 'rehype-pretty-code';
 import { getPostBySlug, getPostUrl, getAllPosts } from '@/lib/posts';
 import { getMDXComponents } from '@/components/MDXComponents';
 
@@ -118,7 +119,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </header>
 
           <div className="prose prose-invert max-w-none">
-            <MDXRemote source={post.content} components={components} />
+            <MDXRemote
+              source={post.content}
+              components={components}
+              options={{
+                mdxOptions: {
+                  rehypePlugins: [
+                    [
+                      rehypePrettyCode,
+                      {
+                        theme: 'github-dark',
+                        keepBackground: true,
+                      },
+                    ],
+                  ],
+                },
+              }}
+            />
           </div>
 
           <footer className="mt-12 pt-8 border-t border-white/10">

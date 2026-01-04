@@ -42,16 +42,57 @@ export function getMDXComponents(components: MDXComponents = {}): MDXComponents 
         {children}
       </a>
     ),
-    code: ({ children }) => (
-      <code className="bg-white/10 text-emerald-400 px-1.5 py-0.5 rounded text-sm font-mono">
-        {children}
-      </code>
-    ),
-    pre: ({ children }) => (
-      <pre className="bg-gray-900 border border-white/10 rounded-lg p-4 overflow-x-auto mb-4">
+    // Inline code only (code blocks are handled by rehype-pretty-code)
+    code: ({ children, ...props }) => {
+      // Check if this is inside a pre (code block) - if so, let rehype-pretty-code handle it
+      const isCodeBlock = 'data-language' in props || 'data-theme' in props;
+      if (isCodeBlock) {
+        return <code {...props}>{children}</code>;
+      }
+      // Inline code styling
+      return (
+        <code className="bg-white/10 text-emerald-400 px-1.5 py-0.5 rounded text-sm font-mono">
+          {children}
+        </code>
+      );
+    },
+    // Code blocks are styled by rehype-pretty-code, we just add container styling
+    pre: ({ children, ...props }) => (
+      <pre
+        className="bg-[#0d1117] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm"
+        {...props}
+      >
         {children}
       </pre>
     ),
+    // Style for the figure wrapper that rehype-pretty-code creates
+    figure: ({ children, ...props }) => {
+      // Check if this is a code block figure from rehype-pretty-code
+      const isCodeFigure = 'data-rehype-pretty-code-figure' in props;
+      if (isCodeFigure) {
+        return (
+          <figure className="my-6 overflow-hidden rounded-lg border border-white/10 mb-4" {...props}>
+            {children}
+          </figure>
+        );
+      }
+      return <figure {...props}>{children}</figure>;
+    },
+    // Style for the figcaption (language label) from rehype-pretty-code
+    figcaption: ({ children, ...props }) => {
+      const isCodeCaption = 'data-rehype-pretty-code-title' in props;
+      if (isCodeCaption) {
+        return (
+          <figcaption
+            className="bg-white/5 px-4 py-2 text-xs text-gray-400 font-mono border-b border-white/10"
+            {...props}
+          >
+            {children}
+          </figcaption>
+        );
+      }
+      return <figcaption {...props}>{children}</figcaption>;
+    },
     ul: ({ children }) => (
       <ul className="list-disc list-inside text-gray-300 mb-4 space-y-2">
         {children}
