@@ -103,20 +103,21 @@ const mandelbulbShader = `
   }
 
   vec4 sceneSDF(vec3 p) {
-    float rotSpeed = uRotationSpeed * 0.08 + uVolume * 0.04 * uAudioReactivity;
+    float rotSpeed = uRotationSpeed * 0.08 + uVolume * 0.02 * uAudioReactivity;
 
-    // Add audio-reactive rotation wobble
-    float bassWobble = uBass * 0.4 * uAudioReactivity;
-    float midWobble = uMid * 0.25 * uAudioReactivity;
+    // Subtle rotation wobble (reduced from original)
+    float bassWobble = uBass * 0.12 * uAudioReactivity;
+    float midWobble = uMid * 0.08 * uAudioReactivity;
     p.xz *= rot2D(uTime * rotSpeed + bassWobble);
     p.xy *= rot2D(uTime * rotSpeed * 0.5 + midWobble);
 
     // Strong audio influence on power parameter - dramatically changes shape
-    float audioMod = uAudioReactivity * (uBass * 1.5 + uMid * 0.8 + uHigh * 0.4);
+    // Increased bass influence for more shape distortion
+    float audioMod = uAudioReactivity * (uBass * 2.5 + uMid * 0.6 + uHigh * 0.3);
     float power = 8.0 + sin(uTime * 0.1) * 1.0 + audioMod;
 
-    // Scale pulsing with bass
-    float scale = 1.0 + uVolume * 0.3 * uAudioReactivity + uBass * 0.15 * uAudioReactivity;
+    // Scale pulsing with bass - increased for more dramatic effect
+    float scale = 1.0 + uVolume * 0.2 * uAudioReactivity + uBass * 0.35 * uAudioReactivity;
 
     vec4 mb = mandelbulb(p / scale, power);
     return vec4(mb.xyz, mb.w * scale);
@@ -394,20 +395,20 @@ const geometricShader = `
 
   vec4 sceneSDF(vec3 p) {
     float time = uTime + TIME_OFFSET;
-    float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.02 * uAudioReactivity;
+    float rotSpeed = uRotationSpeed * 0.03 + uVolume * 0.01 * uAudioReactivity;
     float t = time * rotSpeed;
 
-    // Add audio-reactive rotation wobble
-    float wobble = uBass * 0.3 * uAudioReactivity;
-    p = rotY(t * 0.5 + wobble) * rotX(t * 0.25 + uMid * 0.2 * uAudioReactivity) * p;
+    // Subtle rotation wobble (reduced from original)
+    float wobble = uBass * 0.1 * uAudioReactivity;
+    p = rotY(t * 0.5 + wobble) * rotX(t * 0.25 + uMid * 0.06 * uAudioReactivity) * p;
 
-    // Strong audio influence on fractal parameters
-    float audioMod = uAudioReactivity * (uBass * 0.4 + uMid * 0.25);
+    // Strong audio influence on fractal parameters - increased bass effect on shape
+    float audioMod = uAudioReactivity * (uBass * 0.8 + uMid * 0.2);
 
     float scale = -2.0 + sin(time * 0.03) * 0.2 + audioMod;
-    float foldLimit = 1.0 + uMid * 0.15 * uAudioReactivity + uBass * 0.1 * uAudioReactivity;
-    float minR = 0.5 + uHigh * 0.15 * uAudioReactivity - uBass * 0.1 * uAudioReactivity;
-    float maxR = 1.0 + uVolume * 0.2 * uAudioReactivity;
+    float foldLimit = 1.0 + uMid * 0.1 * uAudioReactivity + uBass * 0.25 * uAudioReactivity;
+    float minR = 0.5 + uHigh * 0.1 * uAudioReactivity - uBass * 0.2 * uAudioReactivity;
+    float maxR = 1.0 + uVolume * 0.15 * uAudioReactivity + uBass * 0.15 * uAudioReactivity;
 
     vec4 fractal = hybridFractal(p, scale, foldLimit, minR, maxR);
     return fractal;
