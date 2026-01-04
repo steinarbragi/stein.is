@@ -40,21 +40,21 @@ export default function AVPage() {
           <div className="absolute bottom-8 left-8 flex gap-2 items-end h-16">
             <div className="flex flex-col items-center gap-1">
               <div
-                className="w-3 bg-emerald-500 rounded-sm transition-all duration-75"
+                className="w-3 bg-emerald-500 rounded-sm"
                 style={{ height: `${audioData.bass * 64}px` }}
               />
               <span className="text-[10px] text-white/50">LO</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <div
-                className="w-3 bg-emerald-400 rounded-sm transition-all duration-75"
+                className="w-3 bg-emerald-400 rounded-sm"
                 style={{ height: `${audioData.mid * 64}px` }}
               />
               <span className="text-[10px] text-white/50">MID</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <div
-                className="w-3 bg-emerald-300 rounded-sm transition-all duration-75"
+                className="w-3 bg-emerald-300 rounded-sm"
                 style={{ height: `${audioData.high * 64}px` }}
               />
               <span className="text-[10px] text-white/50">HI</span>

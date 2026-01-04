@@ -63,10 +63,17 @@ export function useAudioAnalyzer(fftSize: number = 256) {
       }
     }
 
-    const bass = bassSum / bassEnd / 255;
-    const mid = midSum / (midEnd - bassEnd) / 255;
-    const high = highSum / (bufferLength - midEnd) / 255;
+    // Normalize to 0-1 range
+    const bassRaw = bassSum / bassEnd / 255;
+    const midRaw = midSum / (midEnd - bassEnd) / 255;
+    const highRaw = highSum / (bufferLength - midEnd) / 255;
     const volume = totalSum / bufferLength / 255;
+
+    // Apply boost and clamp - higher frequencies need more boost
+    // Also apply a power curve to make quiet sounds more visible
+    const bass = Math.min(1, Math.pow(bassRaw, 0.7) * 1.5);
+    const mid = Math.min(1, Math.pow(midRaw, 0.7) * 1.8);
+    const high = Math.min(1, Math.pow(highRaw, 0.6) * 2.2);
 
     setAudioData({
       frequencyData,
@@ -126,7 +133,9 @@ export function useAudioAnalyzer(fftSize: number = 256) {
       const sourceNode = audioContext.createMediaStreamSource(stream);
       const analyzer = audioContext.createAnalyser();
       analyzer.fftSize = fftSize;
-      analyzer.smoothingTimeConstant = 0.8;
+      analyzer.smoothingTimeConstant = 0.4;
+      analyzer.minDecibels = -90;
+      analyzer.maxDecibels = -10;
 
       sourceNode.connect(analyzer);
       analyzerRef.current = analyzer;
@@ -185,7 +194,9 @@ export function useAudioAnalyzer(fftSize: number = 256) {
       const sourceNode = audioContext.createMediaElementSource(audio);
       const analyzer = audioContext.createAnalyser();
       analyzer.fftSize = fftSize;
-      analyzer.smoothingTimeConstant = 0.8;
+      analyzer.smoothingTimeConstant = 0.4;
+      analyzer.minDecibels = -90;
+      analyzer.maxDecibels = -10;
 
       sourceNode.connect(analyzer);
       analyzer.connect(audioContext.destination); // So we can hear it
