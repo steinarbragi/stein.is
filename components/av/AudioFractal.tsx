@@ -547,11 +547,11 @@ const geometricShader = `
     float time = uTime + TIME_OFFSET;
 
     // Zoom controls how deep into the structure we go
-    float zoomFactor = 0.6 + uZoomLevel * 2.5;
+    float zoomFactor = 1.0 + uZoomLevel * 2.5;
     zoomFactor += uBass * 0.08 * uAudioReactivity + uVolume * 0.06 * uAudioReactivity;
 
-    // Camera pulled back to show vast open spaces
-    float camDist = 6.0 / zoomFactor;
+    // Camera distance for architectural scale
+    float camDist = 4.5 / zoomFactor;
 
     // Subtle camera sway for sense of floating through space
     float sway = time * 0.02;
