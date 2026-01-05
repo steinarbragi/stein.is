@@ -1,6 +1,6 @@
 'use client';
 
-import { DistortedSphere, WaveTerrain, MorphingTorusKnot } from '@/components/experiments';
+import { DistortedSphere, WaveTerrain, MorphingTorusKnot, ShellVortex, GradientBlob } from '@/components/experiments';
 
 export default function ExperimentsPage() {
   return (
@@ -16,6 +16,7 @@ export default function ExperimentsPage() {
         </p>
 
         <div className="grid gap-8">
+          <ShellVortex />
           <DistortedSphere />
           <WaveTerrain />
           <MorphingTorusKnot />
