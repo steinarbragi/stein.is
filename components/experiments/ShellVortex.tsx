@@ -115,8 +115,10 @@ export function ShellVortex() {
         <color attach="background" args={['#000000']} />
         <Shell />
         <OrbitControls
+          enableZoom={false}
           enablePan={false}
-
+          minDistance={4}
+          maxDistance={12}
         />
       </Canvas>
     </ExperimentCard>
