@@ -19,7 +19,6 @@ function Shell() {
       const points: THREE.Vector3[] = [];
 
       // Shell parameters - logarithmic spiral
-      const a = 0.2;
       const b = 0.15;
       const theta = t * Math.PI * 3; // How far along the spiral
 
@@ -43,9 +42,9 @@ function Shell() {
         const angle = (j / pointsPerLine) * Math.PI * 2;
 
         // Point on ellipse in local coordinates
-        let px = ellipseRadiusX * Math.cos(angle);
-        let py = ellipseRadiusY * Math.sin(angle);
-        let pz = 0;
+        const px = ellipseRadiusX * Math.cos(angle);
+        const py = ellipseRadiusY * Math.sin(angle);
+        const pz = 0;
 
         // Rotate around X axis (tilt forward/back)
         const py1 = py * Math.cos(tiltX) - pz * Math.sin(tiltX);

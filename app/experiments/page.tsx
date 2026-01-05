@@ -1,6 +1,6 @@
 'use client';
 
-import { DistortedSphere, WaveTerrain, MorphingTorusKnot, ShellVortex, GradientBlob } from '@/components/experiments';
+import { DistortedSphere, WaveTerrain, MorphingTorusKnot, ShellVortex } from '@/components/experiments';
 
 export default function ExperimentsPage() {
   return (
